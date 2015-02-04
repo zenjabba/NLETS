@@ -1,0 +1,103 @@
+<!--
+  ~ $Revision$
+  ~ $Date$
+  ~
+  ~ Copyright (C) 1999-2012 Jive Software. All rights reserved.
+  ~
+  ~ This software is the proprietary information of Jive Software. Use is subject to license terms.
+  -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.jivesoftware.wth</groupId>
+    <artifactId>jive-local-services</artifactId>
+    <packaging>pom</packaging>
+    <version>6.0.x</version>
+    <name>Jive Local Services</name>
+
+    <parent>
+        <groupId>com.jcs.dtv</groupId>
+        <artifactId>dtv-techforums</artifactId>
+        <version>1</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <profiles>
+        <profile>
+            <id>search</id>
+            <dependencies>
+                <dependency>
+                    <groupId>com.jivesoftware.service.deployable.on-prem-all-in-one-search</groupId>
+                    <artifactId>on-prem-all-in-one-search-main</artifactId>
+                    <version>${search.version}</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>1.1</version>
+                        <executions>
+                            <execution>
+                                <phase>test</phase>
+                                <goals>
+                                    <goal>java</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <classpathScope>test</classpathScope>
+                            <mainClass>com.jivesoftware.service.main.Main</mainClass>
+                            <arguments>
+                                <argument>${basedir}/main-args.properties</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>eae</id>
+            <dependencies>
+                <dependency>
+                    <groupId>eae.core</groupId>
+                    <artifactId>eae-service</artifactId>
+                    <version>${eae.version}</version>
+                    <classifier>shaded</classifier>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>1.1</version>
+                        <executions>
+                            <execution>
+                                <id>start-eae</id>
+                                <phase>initialize</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <executable>java</executable>
+                            <arguments>
+                                <argument>-classpath</argument>
+                                <classpath>
+                                    <dependency>eae.core:eae-service</dependency>
+                                </classpath>
+                                <argument>com.jivesoftware.eae.service.Main</argument>
+                                <argument>${basedir}/var/eae/config</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+</project>

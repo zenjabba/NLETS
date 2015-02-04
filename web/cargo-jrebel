@@ -1,0 +1,9 @@
+# For use with JRebel (You will need to buy a JRebel license to use it)
+#
+# How To:
+# 1. Download and Install JRebel Generic Jar Installer from http://zeroturnaround.com/software/jrebel/download
+# 2. Get the JRebel license from your team
+# 3. Point jrebel.agent to the installation. Make sure jrebel.agent is of the format "-javaagent:<PATH_TO_JREBEL.JAR>"
+#
+
+mvn compile war:exploded -P dev cargo:start -Drebel.struts2-plugin=true -noverify -Djrebel.agent=-javaagent:/Applications/ZeroTurnaround/JRebel/jrebel.jar

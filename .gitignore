@@ -1,0 +1,16 @@
+*.DS_Store
+.metadata/
+*.project
+RemoteSystemsTempFiles/
+target
+subspace-follow/target
+subspace-follow/.settings
+run-services/var
+run-services/.settings
+run-services/.settings
+run-services/eae-service.log
+run-services/eae-service.out
+run-services/undelivered-logs
+web/.settings
+Jive6020Resources/
+Jive604Resources/
