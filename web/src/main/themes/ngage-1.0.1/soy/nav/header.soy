@@ -1,0 +1,51 @@
+{namespace jive.nav}
+
+
+/**
+ * @param headerInfo
+ * @param hideUserBar
+ * @param nav
+ * @param? customizeSite
+ */
+{template .header}
+    {if $headerInfo.standardHeader}
+        <!-- Basic header (no custom HTML) -->
+        <header id="j-header" class="clearfix">
+            {call .logo data="$headerInfo" /}
+
+            <!-- added for Copbook -->
+
+            <span class="j-header-cb-image"> </span>
+            <span class="j-header-cb-right-image"> </span>
+
+            <!-- Navigational buttons/links -->
+            {if $hideUserBar != true}
+                {call .navbar data="$nav"}
+                    {param mode:'standard' /}
+                    {param displayNameOverride}
+                        {if $customizeSite}Abercrombie McLongUserName{/if}
+                    {/param}
+                {/call}
+            {/if}
+        </header>
+
+    {else}
+        // Custom header
+        <header id="j-compact-header" class="clearfix">
+            {if $headerInfo.customHeader}
+                <!-- Customer generated HTML -->
+                <div id="j-cust-head">{$headerInfo.customHeader|noAutoescape}</div>
+            {/if}
+
+            <!-- Navigational buttons/links -->
+            {if $hideUserBar != true}
+                {call .navbar data="$nav"}
+                    {param mode:'custom' /}
+                    {param displayNameOverride}
+                        {if $customizeSite}Abercrombie McLongUserName{/if}
+                    {/param}
+                {/call}
+            {/if}
+        </header>
+    {/if}
+{/template}

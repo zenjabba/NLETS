@@ -1,0 +1,1220 @@
+{namespace jive.eae.activitystream autoescape="contextual"}
+
+
+/**
+ * Renders the activity stream
+ *
+ * @param activityStream - contains user and activityList objects
+ *          user - the current user
+ *          activityList - list of activities
+ * @param activityStream4JS - stripped down version of activityStream for serializing
+ * @param viewingUser - the user viewing the stream
+ * @param streamDisplayName
+ * @param streamType
+ * @param streamID
+ * @param? canViewStatusUpdates - true if the user can view status updates
+ * @param? recommenderEnabled
+ * @param preferredMode
+ * @param startMode
+ * @param mobileUI
+ * @param communityName
+ * @param connectionsInfoClosed
+ * @param infoType
+ * @param infoUser
+ * @param invitationLink
+ * @param hasImagePerms
+ * @depends path=/resources/scripts/apps/activity_stream/activity_stream_controller.js
+ */
+{template .activityStream}
+
+    <div id='j-stream-item-list' class="j-act-container" aria-label="{i18nText('eae.activity.streams.title')}">
+        {call .streamMarkup}
+            {param activityStream: $activityStream /}
+            {param streamType: $streamType /}
+            {param filterType: List('all') /}
+            {param mobileUI: $mobileUI /}
+            {param connectionsInfoClosed: $connectionsInfoClosed /}
+            {param infoType: $infoType /}
+            {param infoUser: $infoUser /}
+            {param invitationLink: $invitationLink /}
+        {/call}
+    </div>
+
+    {call jive.shared.soy.resourceInlineJs}
+        {param code}
+            $j(function(){lb}
+                require(['jive.ActivityStream.ActivityStreamControllerMain'], function(ASController) {lb}
+                    if (jive.ActivityStream.GlobalActivityStreamController) {lb}
+                        jive.ActivityStream.GlobalActivityStreamController.tearDown();
+                    {rb}
+                    jive.ActivityStream.GlobalActivityStreamController = new ASController(
+                        {lb}contextObjectType: {$viewingUser.objectType},
+                            contextObjectID: {$viewingUser.id},
+                            streamDisplayName: '{$streamDisplayName}',
+                            streamType: '{$streamType}',
+                            streamID: '{$streamID}',
+                            rteOptions: {lb}
+                                preferredMode:'{$preferredMode}',
+                                startMode:'{$startMode}',
+                                mobileUI:{$mobileUI},
+                                communityName:'{$communityName}',
+                                hasImagePerms:{$hasImagePerms}
+                            {rb},
+                            streamLoaded: {if $activityStream and $activityStream.activityContainerList}true{else}false{/if},
+                            data:{buildJson($activityStream4JS)|noAutoescape},
+                            timepoints: {buildJson($activityStream4JS.timepoints)|noAutoescape},
+                            mobileUI: {$mobileUI},
+                            canViewStatusUpdates: {$canViewStatusUpdates},
+                            recommenderEnabled: {$recommenderEnabled},
+                            connectionsInfoClosed: {$connectionsInfoClosed},
+                            infoType: {$infoType},
+                            infoUser: {buildJson($infoUser)|noAutoescape}
+                        {rb});
+                    if (jive.HomeNav.GlobalController) {lb}
+                        jive.HomeNav.GlobalController.activityStreamControllerInitialized();
+                    {rb}
+                {rb});
+            {rb});
+        {/param}
+    {/call}
+{/template}
+
+/**
+ * Renders the activity stream
+ *
+ * @param activityStream
+ * @param streamType
+ * @param filterType
+ * @param mobileUI
+ * @param connectionsInfoClosed
+ * @param infoType
+ * @param infoUser
+ * @param invitationLink
+ */
+{template .streamMarkup}
+    <div class="j-act-pagepoll clearfix" id="j-updates" role="status" style="display:none;">
+        {call .newUpdates}
+            {param count: 0 /}
+        {/call}
+    </div>
+    {call .activityStreamList}
+        {param activityStream: $activityStream /}
+        {param filterType: $filterType /}
+        {param streamType: $streamType /}
+        {param mobileUI: $mobileUI /}
+        {param connectionsInfoClosed: $connectionsInfoClosed /}
+        {param infoType: $infoType /}
+        {param infoUser: $infoUser /}
+        {param invitationLink: $invitationLink /}
+    {/call}
+{/template}
+
+/**
+ * Renders filters
+ *
+ * @depends i18nKeys=eae.activitystream.builder.streams.edit
+ * @depends i18nKeys=nav.bar.home.set.default
+ * @depends i18nKeys=eae.stream.filter
+ * @depends i18nKeys=eae.menu.filter.*
+ * @depends i18nKeys=eae.menu.updates.since.refresh
+ * @param streamType
+ * @param selectedFilter
+ * @param canViewStatusUpdates
+ * @param recommenderEnabled
+ * @param? streamDisplayName
+ * @param numUpdatesSinceRefresh
+ */
+{template .streamSpecificFilters}
+    <header class="j-act-header clearfix" aria-label="{i18nText('eae.stream.type.filter.label')}">
+        {if $streamType != 'profile' and $streamType != 'context'}
+            <h1 class="header" id="js-activity-heading">{$streamDisplayName}</h1>
+        {/if}
+        {if $numUpdatesSinceRefresh}
+            <div class="j-js-updates-since-refresh j-updates-since-refresh font-color-meta" aria-live="polite" aria-atomic="true">
+                {if $numUpdatesSinceRefresh > 50}
+                    {i18nText('eae.menu.updates.since.refresh', '50+')}
+                {elseif $numUpdatesSinceRefresh == 1}
+                    {i18nText('eae.menu.update.since.refresh', $numUpdatesSinceRefresh)}
+                {else}
+                    {i18nText('eae.menu.updates.since.refresh', $numUpdatesSinceRefresh)}
+                {/if}
+            </div>
+        {/if}
+
+        // filtering controls
+        {if $streamType == 'profile' and $canViewStatusUpdates}
+            <ul id="filterlinks" class="j-act-listfilters">
+                <li class="filter">
+                    <a data-filterName='all' href="#" class="{if not length($selectedFilter) or indexOf($selectedFilter, 'all') != -1}j-sub-selected font-color-normal{/if} j-rc6">
+                        {i18nText('eae.menu.filter.all.content')}
+                    </a>
+                </li>
+                <li class="filter">
+                    <a data-filterName='statusupdates' href="#" class="{if indexOf($selectedFilter, 'statusupdates') != -1}j-sub-selected font-color-normal{/if} j-rc6">
+                        {i18nText('eae.menu.filter.statusupdates')}
+                    </a>
+                </li>
+            </ul>
+        {elseif $streamType != 'profile' and $streamType != 'context'}
+            {if $canViewStatusUpdates and $recommenderEnabled}
+                // drop down menu-style filters
+
+                <div id="filters-applied" class="j-filters-applied j-rc6"{sp}
+                    {if indexOf($selectedFilter, 'statusupdates') == -1 and indexOf($selectedFilter, 'mattersmost') == -1}
+                        style="display:none"
+                    {/if}>
+                    <span class="j-act-filterview j-act-filter-display-name">
+                        {if indexOf($selectedFilter, 'statusupdates') != -1}
+                            {i18nText('eae.menu.filter.statusupdates')}
+                        {elseif indexOf($selectedFilter, 'mattersmost') != -1}
+                            {i18nText('eae.menu.filter.matters.most')}
+                        {/if}
+                    </span>
+                    <a href="#" class="js-remove-filter"><span class="jive-icon-sml jive-glyph-remove"></span></a>
+                </div>
+
+                <a href="#" id="as-filter-trigger"  class="j-as-filter-dd-control j-filter-select">
+                    <span class="lnk">{i18nText('eae.stream.filter')}</span>
+                    <span class="jive-icon-med jive-icon-down j-filter-icon"></span>
+                </a>
+
+            {elseif $canViewStatusUpdates or $recommenderEnabled}
+                // link filters
+                <ul id="filterlinks" class="j-act-listfilters">
+                    <li class="filter">
+                        <a data-filterName='all' href="#" class="{if not length($selectedFilter) or indexOf($selectedFilter, 'all') != -1}j-sub-selected font-color-normal{/if} j-rc6">
+                            {i18nText('eae.menu.filter.all.content')}
+                        </a>
+                    </li>
+                    {if $canViewStatusUpdates}
+                        <li class="filter">
+                            <a data-filterName='statusupdates' href="#" class="{if indexOf($selectedFilter, 'statusupdates') != -1}j-sub-selected font-color-normal{/if} j-rc6">
+                                {i18nText('eae.menu.filter.statusupdates')}
+                            </a>
+                        </li>
+                    {else}
+                        <li class="filter">
+                            <a data-filterName='mattersmost' href="#" class="{if indexOf($selectedFilter, 'mattersmost') != -1}j-sub-selected font-color-normal{/if} j-rc6">
+                                {i18nText('eae.menu.filter.matters.most')}
+                            </a>
+                        </li>
+                    {/if}
+                </ul>
+            {/if}
+        {/if}
+    </header>
+{/template}
+
+/**
+ * Renders filters
+ *
+ * @depends i18nKeys=eae.menu.filter.*
+ */
+{template .filterMenu}
+    <div id="filtermenu" class="j-act-filter-menu j-quick-menu j-menu" style="display:none;">
+        <ul class="j-act-filter-options">
+            <li>
+                <a data-filterName='mattersmost' href="#">
+                    {i18nText('eae.menu.filter.matters.most')}
+                </a>
+            </li>
+            <li>
+                <a data-filterName='statusupdates' href="#">
+                    {i18nText('eae.menu.filter.statusupdates')}
+                </a>
+            </li>
+            <li>
+                <a data-filterName='all' href="#">
+                    {i18nText('eae.menu.filter.all')}
+                </a>
+            </li>
+        </ul>
+    </div>
+{/template}
+
+/**
+ * Markup shown when user hits the maximum number of "pages" of activity
+ */
+{template .maxPagesReached}
+    <div class='j-max-pages-reached'>
+        <span class="j-max-pages-reached-label">
+            {i18nText('eae.stream.max.pages.reached')}
+        </span>
+    </div>
+{/template}
+
+/**
+ * Renders the list of activities
+ *
+ * @param activityStream - contains user and activityList objects
+ * @param streamType
+ * @param filterType
+ * @param mobileUI
+ * @param connectionsInfoClosed
+ * @param infoType
+ * @param infoUser
+ * @param invitationLink
+ * @param isTrialActive true if the user is not anonymous and the trial is enabled and active
+ */
+{template .activityStreamList}
+    {if $activityStream.activityContainerList and length($activityStream.activityContainerList)}
+        {if indexOf($filterType, 'antimatter') != -1}
+            <div class="j-act-streaminfo j-rc6">
+                <strong>{i18nText('eae.label.filter.hidden')}</strong> {i18nText('eae.info.filter.hidden')}
+            </div>
+        {/if}
+        {if indexOf($filterType,'magic') != -1}
+            <div class="j-act-streaminfo j-rc6">
+                <strong>{i18nText('eae.label.filter.matters.most')}</strong> {i18nText('eae.info.filter.matters.most')}
+            </div>
+        {/if}
+
+        {foreach $activityContainer in $activityStream.activityContainerList}
+            {if length($activityContainer.activityList) > 0}
+				/* HEDLOC Start */
+				/* If the activity container type is not social news or latest likes, display the container. *
+				{if $activityContainer.jiveObject.objectType != -1864883264 and $activityContainer.jiveObject.objectType != 447369365}
+					{call .groupedActivityStreamItem}
+						{param activityContainer: $activityContainer /}
+						{param user: $activityStream.viewingUser /}
+						{param streamType: $streamType /}
+						{param filterType: (length($filterType) ? $filterType : List('all')) /}
+						{param canCreateMbImage: $activityStream.canCreateMbImage /}
+						{param canCreateMbVideo: $activityStream.canCreateMbVideo /}
+						{param mobileUI: $mobileUI /}
+					{/call}
+				{/if}
+				*
+				{if $activityContainer.jiveObject.objectType == -1864883264 or $activityContainer.jiveObject.objectType == 447369365}
+					{call .groupedActivityStreamItem}
+						{param activityContainer: $activityContainer /}
+						{param user: $activityStream.viewingUser /}
+						{param streamType: $streamType /}
+						{param filterType: (length($filterType) ? $filterType : List('all')) /}
+						{param canCreateMbImage: $activityStream.canCreateMbImage /}
+						{param canCreateMbVideo: $activityStream.canCreateMbVideo /}
+						{param mobileUI: $mobileUI /}
+						{param sidebar: 'sidebar'/}
+					{/call}
+				{else}
+					{call .groupedActivityStreamItem}
+						{param activityContainer: $activityContainer /}
+						{param user: $activityStream.viewingUser /}
+						{param streamType: $streamType /}
+						{param filterType: (length($filterType) ? $filterType : List('all')) /}
+						{param canCreateMbImage: $activityStream.canCreateMbImage /}
+						{param canCreateMbVideo: $activityStream.canCreateMbVideo /}
+						{param mobileUI: $mobileUI /}
+					{/call}
+				{/if}
+				* HEDLOC End */
+					{call .groupedActivityStreamItem}
+						{param activityContainer: $activityContainer /}
+						{param user: $activityStream.viewingUser /}
+						{param streamType: $streamType /}
+						{param filterType: (length($filterType) ? $filterType : List('all')) /}
+						{param canCreateMbImage: $activityStream.canCreateMbImage /}
+						{param canCreateMbVideo: $activityStream.canCreateMbVideo /}
+						{param mobileUI: $mobileUI /}
+					{/call}
+            {/if}
+        {/foreach}
+        {if $activityStream.hasMore}
+            <a class='j-js-load-more j-act-append j-rc6' href='#'>
+                <span class="j-rc6 j-more-label">
+                    {i18nText('eae.stream.load_more')}
+                </span>
+            </a>
+        {/if}
+    {elseif not $infoUser or not $infoUser.partner}
+        {if not $connectionsInfoClosed and $streamType == 'connections' and indexOf($filterType, 'all') != -1}
+            {call .connectionsInfoBox}
+                {param connectionsInfoClosed:$connectionsInfoClosed /}
+                {param infoType:$infoType /}
+                {param invitationLink: $invitationLink /}
+            {/call}
+        {/if}
+        <div class="j-act-empty-list font-color-meta"{sp}
+            {if not $connectionsInfoClosed and $streamType == 'connections' and indexOf($filterType, 'all') != -1}
+                style="display:none;"
+            {/if}>
+            // Display a message when there isn't any activity
+            {if $streamType == 'custom' or $streamType == 'connections' or $streamType == 'watches'}
+                {if indexOf($filterType, 'statusupdates') != -1}
+                    {i18nText('eae.activity.empty.list.statusupdates.following')}
+                {else}
+                    {i18nText('eae.activity.empty.list.all.following')}
+                {/if}
+            {elseif $streamType == 'context'}
+                {i18nText('eae.activity.empty.list.context')}
+            {elseif $streamType == 'profile'}
+                {if indexOf($filterType, 'statusupdates') != -1}
+                    {i18nText('eae.activity.empty.list.statusupdates.profile')}
+                {else}
+                    {i18nText('eae.activity.empty.list.profile')}
+                {/if}
+            {else}
+                {if indexOf($filterType, 'statusupdates') != -1}
+                    {i18nText('eae.activity.empty.list.statusupdates')}
+                {else}
+                    <div class="j-act-empty clearfix font-color-normal">
+                        <h2>{i18nText('activity.empty.title')}</h2>
+                        <p>{i18nText('activity.empty.desc')}</p>
+                        <img src="{resourceUrl('/images/stream-intro/sample.png')}" title="{i18nText('eae.activitystream.example.image')}" alt="{i18nText('eae.activitystream.example.image')}" />
+
+                        {if $isTrialActive}
+                            <h2>{i18nText('welcome.home.trial.title')}</h2>
+                            <p>{i18nText('welcome.home.trial.desc')}
+                            {sp}<a href="#" id="js-welcome-discover-link">{i18nText('trial.quest.discover_jive.title')}</a></p>
+
+                            <script type="text/javascript">
+                                $j(function() {lb}
+                                    $j('#js-welcome-discover-link').click(function(e) {lb}
+                                        $j('#jive-trial-banner').trigger('click');
+                                        e.preventDefault();
+                                    {rb});
+                                {rb});
+                            </script>
+                        {/if}
+                    </div>
+                {/if}
+            {/if}
+        </div>
+    {/if}
+{/template}
+
+/**
+ * Renders the info box for the stream
+ *
+ * @param connectionsInfoClosed true if the user has already closed the stream info box, false otherwise.
+ * @param infoType 1 for a community with less than 10 users, 2 for a community with more than 10 users
+ * @param invitationLink
+ *
+ * @depends i18nKeys=eae.activity.streams.empty.*
+ * @depends path=/resources/scripts/apps/browse/user/model/user_source.js
+ * @depends path=/resources/scripts/apps/browse/activity/info/main.js
+ * @depends path=/resources/scripts/apps/invitation/main.js lazy=true
+ */
+{template .connectionsInfoBox}
+    {call jive.shared.soy.resourceInlineJs}
+        {param code}
+            $j(document).ready(
+                function() {lb}
+                    $j('#j-stream-info-dismiss-link').click(dismissInfoBox);
+                    $j('#j-stream-info-icon').click(toggleInfoBox);
+                {rb}
+            );
+
+            function dismissInfoBox(e) {lb}
+                $j('#j-stream-info').slideUp(500,'easeOutCirc', function() {lb}
+                    $j('.j-act-empty-list').show();
+                {rb});
+                var userSource = new jive.Browse.User.ItemSource();
+                userSource.setUserProperty({lb} userID: 'current', propName: 'jive.connectionsInfo.closed', propValue: 'true' {rb});
+                e.preventDefault();
+            {rb}
+
+            function toggleInfoBox(e) {lb}
+                if ($j('#j-stream-info').is(':visible') ) {lb}
+                    dismissInfoBox(e);
+                {rb} else {lb}
+                    $j('#j-stream-info').slideDown(200,'easeInOutCirc');
+                    e.preventDefault();
+                {rb}
+            {rb}
+        {/param}
+    {/call}
+
+    <!-- BEGIN info box -->
+    <div id="j-stream-info" class="j-stream-info j-rc5" style="{if $connectionsInfoClosed}display: none;{else}display: block;{/if}">
+        {if $infoType == 1}
+            <div class="emptyville"></div>
+            <h3 class="font-face-deco">
+                {i18nText('eae.activity.streams.empty.title')}
+            </h3>
+            <p class="j-inviteto-empty">
+                {call jive.shared.soy.i18nHelper}
+                    {param i18nKey}
+                        eae.activity.streams.empty.invite.text
+                    {/param}
+                    {param arg0}
+                        <strong>{i18nText('eae.activity.streams.empty.fewerthanten.text')}</strong>
+                    {/param}
+                    {param noAutoEscape:true/}
+                {/call}
+            </p>
+
+            {if $invitationLink.visible}
+                {call jive.shared.soy.resourceInlineJs}
+                    {param code}
+                        $j(function() {lb}
+                            require(['jive.invite.Main'], function(InviteMain) {lb}
+                                var container = {lb}
+                                    id: {$invitationLink.communityId},
+                                    name: "{$invitationLink.communityName}",
+                                    type: "{$invitationLink.communityObjectType}"{rb};
+                                var company = {buildJson($invitationLink.companyName)|noAutoescape};
+                                var domains = {buildJson($invitationLink.domains)|noAutoescape};
+                                var allowEmail = true;
+                                var allowUsers = false;
+                                var maxInvite = {$invitationLink.maxInvitationCount};
+                                var invitePeriod = {$invitationLink.invitationPeriodInHours};
+                                var message = "{$invitationLink.message|escapeJs}";
+                                var trial = {$invitationLink.trial};
+                                var canInvitePartners = false;
+                                var canInviteJustPartners = false;
+                                var canInvitePreprovisioned = false;
+                                var invitePreprovisionedDomainRestricted = false;
+                                var inviteApp = new InviteMain(container, company, domains, allowEmail, allowUsers,
+                                    canInvitePartners, canInviteJustPartners, canInvitePreprovisioned,
+                                    invitePreprovisionedDomainRestricted, maxInvite, invitePeriod, message, trial,
+                                    '#j-invite-button-connections');
+                            {rb});
+                        {rb});
+                    {/param}
+                {/call}
+                <p>
+                    <strong>
+                        <a id="j-invite-button-connections" href="{buildUrl($invitationLink.url)}">
+                            {i18nText('eae.activity.streams.empty.invite.text2')}
+                        </a>
+                    </strong>
+                </p>
+                <p>
+                    {i18nText('eae.activity.streams.empty.invite.text3')}
+                </p>
+            {/if}
+        {elseif $infoType == 2}
+            <div class="emptyville"></div>
+            <h3 class="font-face-deco">
+                {i18nText('eae.activity.streams.empty.title')}
+            </h3>
+            <p>
+                {i18nText('eae.activity.streams.empty.intro.text')}
+            </p>
+            <p>
+                <strong>
+                    {i18nText('eae.activity.streams.empty.intro.text2')}
+                </strong>
+            </p>
+            <p>
+                {i18nText('eae.activity.streams.empty.findaddthings.text')}
+            </p>
+
+            <button class="j-btn-global j-btn-callout j-js-edit-stream">{i18nText('eae.activity.streams.empty.buildnow.btn')}</button>
+        {/if}
+    </div>
+    <!-- END info box -->
+{/template}
+
+/**
+ * Render a grouped set of activity from the activity stream
+ *
+ * @param activityContainer - the grouped set of activity
+ * @param user - the user currently viewing the stream
+ * @param streamType
+ * @param filterType
+ * @param canCreateMbImage
+ * @param canCreateMbVideo
+ * @param mobileUI
+ * @param? sidebar
+ * @depends i18nKeys=main.in_user_container.label
+ * @depends template=jive.eae.activitystream.item.grouped.*
+ */
+{template .groupedActivityStreamItem}
+    // If the activityContainer has a custom grouped view, use that instead of the default
+    {if $activityContainer.jiveObject.groupedActivityStreamTemplate}
+		{if $sidebar}
+<div class="hedloc-div" style="display:none;">$sidebar: {$sidebar}; templateName: {$activityContainer.jiveObject.groupedActivityStreamTemplate};</div>
+			{call jive.shared.soy.render}
+				{param templateName: $activityContainer.jiveObject.groupedActivityStreamTemplate /}
+				{param data: Map(
+					p('activityContainer', $activityContainer),
+					p('user', $user),
+					p('streamType', $streamType),
+					p('filterType', $filterType),
+					p('canCreateMbImage', $canCreateMbImage),
+					p('canCreateMbVideo', $canCreateMbVideo),
+					p('mobileUI', $mobileUI),
+					p('sidebar', $sidebar)
+				) /}
+				{param failGracefully: true /}
+			{/call}
+		{else}
+			{call jive.shared.soy.render}
+				{param templateName: $activityContainer.jiveObject.groupedActivityStreamTemplate /}
+				{param data: Map(
+					p('activityContainer', $activityContainer),
+					p('user', $user),
+					p('streamType', $streamType),
+					p('filterType', $filterType),
+					p('canCreateMbImage', $canCreateMbImage),
+					p('canCreateMbVideo', $canCreateMbVideo),
+					p('mobileUI', $mobileUI)
+				) /}
+				{param failGracefully: true /}
+			{/call}
+		{/if}
+    {else}
+        {call jive.eae.activitystream.item.grouped.defaultImpl data="all" /}
+    {/if}
+{/template}
+
+/**
+ * render the full content view of a parent object
+ *
+ * @param activityContainer - the grouped set of activity
+ * @param user - the user currently viewing the stream
+ * @param streamType
+ * @param filterType
+ * @param canCreateMbImage
+ * @param canCreateMbVideo
+ *
+ * @depends template=jive.eae.activitystream.item.fullcontent.*
+ */
+{template .activityStreamFullContentView}
+    // If the activityContainer has a custom full content view, use that instead of the default
+    {if $activityContainer.jiveObject.activityStreamFullContentViewTemplate}
+        {call jive.shared.soy.render}
+            {param templateName: $activityContainer.jiveObject.activityStreamFullContentViewTemplate /}
+            {param data: Map(
+                p('activityContainer', $activityContainer),
+                p('user', $user),
+                p('streamType', $streamType),
+                p('filterType', $filterType),
+                p('canCreateMbImage', $canCreateMbImage),
+                p('canCreateMbVideo', $canCreateMbVideo)
+            ) /}
+            {param failGracefully: true /}
+        {/call}
+    {else}
+        <div class="j-act-section">
+            <div class="
+            {call jive.eae.common.contentTypeParentPreviewStylingClassName}
+                {param activityContainer: $activityContainer /}
+            {/call}
+            ">
+                <div class="j-act-exp-content-body-view js-full-content-body j-excerpt-full" style=""></div>
+
+                {call jive.eae.common.renderStreamAttachments}
+                    {param idPrefix: 'collapsed'/}
+                    {param object:$activityContainer.jiveObject /}
+                    {param domIDPostfix: $activityContainer.jiveObject.domIDPostfix /}
+                {/call}
+
+            </div>
+        </div>
+    {/if}
+{/template}
+
+/**
+ * Render the dom elements necessary for hiding an element
+ *
+ * @param activityContainer - the grouped set of activity
+ * @param streamType
+ * @param alreadyHidden
+ */
+{template .hideUnhideMenu}
+    {if $alreadyHidden}
+        {call .alreadyHiddenMessage /}
+    {elseif ($streamType != 'profile' and $streamType != 'context')}
+        // making the data-linkedID the same as the id of the article because this div will get popped out of its dom location and reinserted for the popover effect, giving
+        // it the same data-linkedID will make it easy to find
+        <div class="j-quick-menu j-menu j-act-hideoptions j-js-hide-container">
+            <ul class="j-js-hide-options">
+                <li>
+                    <a class="j-act-hidelink" href="#">
+                        // hide just this item's activity
+                        {if $activityContainer.jiveObject.typeExternalActivity}
+                            // App activity
+                            {i18nText('eae.menu.hide.post', ' ')}
+                        {elseif $activityContainer.jiveObject.typeWallEntry}
+                            {i18nText('eae.menu.hide.update')}
+                        {else}
+                            {if $activityContainer.activityList[0] and
+                                $activityContainer.activityList[0].content.commentContentResource and
+                                $activityContainer.activityList[0].content.commentContentResource.objectType == 129}
+                                {i18nText('eae.menu.hide.backchannel')}
+                            {elseif $activityContainer.jiveObject.contentTypeName}
+                                {i18nText('eae.menu.hide.content', lowercase($activityContainer.jiveObject.contentTypeName))}
+                            {else}
+                                {i18nText('eae.menu.hide.content', ' ')}
+                            {/if}
+                        {/if}
+                    </a>
+                </li>
+                {if not $activityContainer.jiveObject.typeExternalActivity}
+                    {if $activityContainer.activityList[0] and
+                        $activityContainer.activityList[0].content.commentContentResource and
+                        $activityContainer.activityList[0].content.commentContentResource.objectType == 129}
+                        <li><a class="j-js-type-from-context j-js-hide" href="#">{i18nText('eae.menu.hide.context.backchannel', $activityContainer.container.name)}</a></li>
+                    {elseif $activityContainer.jiveObject.typeWallEntry}
+                        <li><a class="j-js-type-from-context j-js-hide" href="#">{i18nText('eae.menu.hide.context.user', $activityContainer.originalAuthor.displayName)}</a></li>
+                    {elseif $activityContainer.jiveObject.contentTypeFeatureName}
+                        <li><a class="j-js-type-from-context j-js-hide" href="#">{i18nText('eae.menu.hide.context.type', lowercase($activityContainer.jiveObject.contentTypeFeatureName), $activityContainer.container.name)}</a></li>
+                    {/if}
+                {/if}
+
+                {if $activityContainer.jiveObject.typeExternalActivity}
+                    // allow all activity from an app to be hidden.
+                    {if $activityContainer.jiveObject.verb == 'uri:jiveName:app_install'}
+                        <li><a class="j-js-context j-js-hide" href="#">{i18nText('eae.menu.hide.all.post', $activityContainer.jiveObject.subject)}</a></li>
+                    {elseif $activityContainer.jiveObject.generatorName}
+                        <li><a class="j-js-context j-js-hide" href="#">{i18nText('eae.menu.hide.all.post', $activityContainer.jiveObject.generatorName)}</a></li>
+                    {else}
+                        <li><a class="j-js-context j-js-hide" href="#">{i18nText('eae.menu.hide.all.post', $activityContainer.jiveObject.contentTypeFeatureName)}</a></li>
+                    {/if}
+                {elseif not $activityContainer.container.systemContainer and not $activityContainer.jiveObject.typeWallEntry}
+                    <li><a class="j-js-context j-js-hide" href="#">{i18nText('eae.menu.hide.context', $activityContainer.container.name)}</a></li>
+                {/if}
+            </ul>
+        </div>
+    {/if}
+{/template}
+
+/**
+ * Message displayed when an item is already hidden and the user pops the hide menu
+ *
+ * @depends i18nKeys=eae.menu.hide.hidden
+ */
+{template .alreadyHiddenMessage}
+    <div class="j-hidden">
+        {i18nText('eae.menu.hide.hidden')}
+    </div>
+{/template}
+
+/**
+ * The default collapsed view of a group of activities
+ *
+ * @param activityContainer - the grouped set of activities
+ * @param activity
+ * @param streamType
+ * @param user - the user viewing the stream
+ * @param canCreateMbImage
+ * @param canCreateMbVideo
+ * @param hideStub
+ * @param time
+ *
+ * @depends template=jive.eae.activitystream.item.collapsed.*
+ */
+{template .collapsedActivityStreamExcerpt}
+    {if $activityContainer.jiveObject.collapsedActivityStreamExcerptTemplate}
+        {call jive.shared.soy.render}
+            {param templateName: $activityContainer.jiveObject.collapsedActivityStreamExcerptTemplate /}
+            {param data: Map(
+                p('activityContainer', $activityContainer),
+                p('activity', $activity),
+                p('streamType', $streamType),
+                p('user', $user),
+                p('canCreateMbImage', $canCreateMbImage),
+                p('canCreateMbVideo', $canCreateMbVideo),
+                p('time', $time),
+                p('hideStub', $hideStub)
+            ) /}
+            {param failGracefully: true /}
+        {/call}
+    {else}
+        {if $activity.parentActivity}
+            //only the origination activity, details will be shown in the title
+        {else}
+            <div id="node-collapsed-{$activity.content.domIDPostfix}"{sp}
+                class="j-act-node {if $activityContainer.canReply} j-act-rte-replyable{/if}"{sp}
+                data-extVisible="{$activity.visibleToExtCollaborator}"{sp}
+                data-objectID="{$activity.targetObjectID}"{sp}
+                data-objectType="{$activity.targetObjectType}"{sp}
+                data-current="{if $activity.current}{$activity.current}{/if}"{sp}
+                style="">
+                <div id="excerpt_{$activity.content.domIDPostfix}" class="{if $activity.content.deleted}j-mod j-deleted font-color-meta-light{else}j-act-comment{/if} j-js-collapsed">
+                    {if $activity.content.deleted}
+                        {call jive.eae.common.collapsedExcerptText}
+                            {param text: '' /}
+                            {param hasMoreText: false /}
+                            {param deletedType: $activity.content.deletedMention ? 'mention' : 'comment' /}
+                            {param moderated: false /}
+                        {/call}
+                        {sp}
+                        {if $activity.creationTime}
+                            {$activity.creationTime}
+                        {else}
+                            {i18nText('global.less_than_a_minute_ago')}
+                        {/if}
+                    {else}
+                        <div class="j-act-avatar">
+                            {call jive.shared.displayutil.avatar data="$activity.activityUser"}
+                                {param size: 32 /}
+                                {param currentUserPartner: $user.partner /}
+                            {/call}
+                        </div>
+
+                        <div class="j-author-act font-color-meta-light">
+                            // param againstObject is false for non-inbox entries
+                            {call jive.eae.common.activityAuthorNoVerb}
+                                {param activityUser: $activity.activityUser /}
+                                {param object: $activity.content /}
+                            {/call}
+                            <span class="j-act-time font-color-meta-light">
+                            {sp}
+                                {if $activity.content.jiveObjectURL}
+                                    <a href="{buildUrl($activity.content.jiveObjectURL)|noAutoescape}" class="font-color-meta-light">
+                                {/if}
+                                {$time}
+                                {if $activity.content.jiveObjectURL}
+                                    </a>
+                                {/if}
+                            </span>
+                            <span class="j-act-preview-control">{sp}
+                                {call .collapsedActivityPreviewLinks}{/call}
+                            </span>
+                        </div>
+                        <div class="j-excerpt" {if $hideStub}style="display:none;"{/if}>
+                            {call jive.eae.common.collapsedExcerptText}
+                                {param text:$activity.content.text/}
+                                {param hasMoreText: $activity.hasMoreText /}
+                                {param deletedType: null /}
+                                {param moderated: $activity.moderated /}
+                            {/call}
+                        </div>
+                        <div class="j-act-sub-preview clearfix" {if not $hideStub}style="display:none;"{/if}>
+                            <div class="j-excerpt-full-html-content">
+                                {if $activity.content.html}
+                                    // $activity.content.html will only be set on rendering a reply/replacing collapsed
+                                    // in AS, will be filled in AJAXy otherwise
+                                    {call jive.eae.common.activityContentText}
+                                        {param activity:$activity/}
+                                        {param noAutoescape:true/}
+                                    {/call}
+                                {/if}
+                            </div>
+                        </div>
+
+                        <div class="j-meta-actions font-color-meta">
+                            {call jive.eae.common.activityNavActions}
+                                {param object: $activityContainer.activityList[length($activityContainer.activityList)-1].content/}
+                                {param activityContainer: $activityContainer /}
+                                {param amAnAuthor: $user.id == $activityContainer.activityList[length($activityContainer.activityList)-1].activityUser.id /}
+                                {param objectType: $activityContainer.activityList[length($activityContainer.activityList)-1].content.objectType /}
+                                {param objectId: $activityContainer.activityList[length($activityContainer.activityList)-1].content.id /}
+                                {param liked: $activityContainer.activityList[length($activityContainer.activityList)-1].liked /}
+                                {param likeCount: $activityContainer.activityList[length($activityContainer.activityList)-1].likeCount /}
+                                {param likable: $activityContainer.activityList[length($activityContainer.activityList)-1].likable /}
+                                {param hasMoreText: $activityContainer.activityList[length($activityContainer.activityList)-1].hasMoreText /}
+                                {param author: $activityContainer.activityList[length($activityContainer.activityList)-1].activityUser /}
+                                {param user: $user /}
+                                {param location: 'subActivity' /}
+                                {param streamType: $streamType /}
+                                {param canCreateMbImage: $canCreateMbImage /}
+                                {param canCreateMbVideo: $canCreateMbVideo /}
+                            {/call}
+                        </div>
+                    {/if}
+                </div>
+            </div>
+        {/if}
+    {/if}
+{/template}
+
+/**
+ * Default expanded view of stream (not inbox) activities.
+ *
+ * @param activityContainer - the grouped set of activities
+ * @param user - the viewing user
+ * @param streamType
+ * @param canCreateMbImage
+ * @param canCreateMbVideo
+ *
+ * @depends template=jive.eae.activitystream.item.expanded.*
+ */
+{template .expandedActivityStreamItemView}
+    // If the activityContainer has a custom grouped view, use that instead of the default
+    {if $activityContainer.jiveObject.expandedActivityStreamViewTemplate}
+        {call jive.shared.soy.render}
+            {param templateName: $activityContainer.jiveObject.expandedActivityStreamViewTemplate /}
+            {param data: Map(
+                p('activityContainer', $activityContainer),
+                p('user', $user),
+                p('streamType', $streamType),
+                p('canCreateMbImage', $canCreateMbImage),
+                p('canCreateMbVideo', $canCreateMbVideo)
+            ) /}
+            {param failGracefully: true /}
+        {/call}
+    {else}
+        <div class="j-act-exp-view j-expanded clearfix"
+            data-linkedID="{$streamType}_{$activityContainer.jiveObject.objectType|id}_{$activityContainer.jiveObject.id|id}_{$activityContainer.container.type}_{$activityContainer.container.id}_{$activityContainer.jiveObject.domIDPostfix}"
+            style="display:none;">
+            // Loop over entries
+            <div class="j-sub-activity-items">
+                {foreach $activity in $activityContainer.activityList}
+                    // only load in the non-latest activities if in the profile stream
+                    // The rest will be loaded in dynamically when appropriate.
+                    {if not $activity.parentActivity and $activity.content.deleted}
+                        {call jive.eae.common.activityContentExcerpt}
+                            {param activity:$activity /}
+                            {param activityContainer:$activityContainer /}
+                            {param isHidden: true /}
+                            {param user: $user/}
+                            {param streamType: $streamType /}
+                            {param canCreateMbImage: $canCreateMbImage /}
+                            {param canCreateMbVideo: $canCreateMbVideo /}
+                            {param addedInline: false /}
+                            {param hideStub: true /}
+                            {param forceCurrent: false /}
+                        {/call}
+                    {/if}
+                {/foreach}
+            </div>
+        </div>
+    {/if}
+{/template}
+
+/**
+ * Renders the expand bar in the activity stream entry for showing more/less
+ *
+ * @param activityContainer
+ * @param streamType
+ * @param filterType
+ */
+{template .activityStreamExpandBar}
+    <div class="j-act-expand-bar font-color-meta j-rc4 j-rc-none-bottom clearfix"{sp}
+        {if not $activityContainer.replyCount and (length($activityContainer.activityList) == 1 or
+                (length($activityContainer.activityList) == 2 and $activityContainer.activityList[0].parentActivity))}
+            style="display:none;"
+        {/if}>
+        {call jive.eae.common.replyCountText}
+            {param activityContainer: $activityContainer /}
+            {param streamType: $streamType /}
+            {param showCurrentCount: (($streamType != 'context' and $streamType != 'profile') and indexOf($filterType, 'all') != -1) /}
+        {/call}
+        {call .activityStreamExpandContent}
+            {param activityContainer: $activityContainer /}
+            {param streamType: $streamType /}
+            {param filterType: $filterType /}
+        {/call}
+    </div>
+{/template}
+
+/**
+ * Renders the button for expanding an AS entry, if necessary
+ *
+ * @param activityContainer - the grouped set of activity, activityList will be the original activity list set
+ */
+{template .activityStreamExpandContent}
+    // show an expand button if we're on the followed stream and there is more than one total reply (so they can get all comments dynamically on click),
+    // or if there is more than one non-parent activity in the list
+    {if $activityContainer.replyCount > 0 or length($activityContainer.activityList) > 1 or (length($activityContainer.activityList) > 0 and not $activityContainer.activityList[0].parentActivity)}
+
+        <span class="j-show-older" style="display:none;">
+            <a href="#" class="j-js-show-older">
+                {i18nText('eae.stream.showmorecomments')}
+            </a>
+        </span>
+
+        <span class="j-expand-comments">
+            <a href="#" class="j-js-show-all j-expand">
+                {i18nText('eae.stream.showmorecomments')}
+            </a>
+        </span>
+    {/if}
+{/template}
+
+
+/**
+ * The default hidden view of a group of activities
+ *
+ * @param activityContainer - the grouped set of activities
+ * @param type - type of hide/unhide
+ */
+{template .hiddenActivityView}
+    {if $activityContainer.jiveObject}
+        {if $activityContainer.jiveObject.typeExternalActivity}
+            {if $type == 'context'}
+                {call jive.shared.soy.i18nHelper}
+                    {param i18nKey}
+                        {i18nText('eae.menu.hide.post.all.hidden')}
+                    {/param}
+                    {param arg0}
+                        {if $activityContainer.jiveObject.activityIcon}
+                            {call jive.shared.displayutil.renderIconElement}
+                                {param icon: $activityContainer.jiveObject.activityIcon /}
+                            {/call}{sp}
+                        {else}
+                            <span class="jive-icon-med  {$activityContainer.jiveObject.jiveObjectCSS}"></span>
+                        {/if}
+                        <strong>
+                            {if $activityContainer.jiveObject.verb == 'uri:jiveName:app_install'}
+                                {$activityContainer.jiveObject.subject}
+                            {elseif $activityContainer.jiveObject.generatorName}
+                                {$activityContainer.jiveObject.generatorName}
+                            {else}
+                                {$activityContainer.jiveObject.contentTypeFeatureName}
+                            {/if}
+                        </strong>
+                    {/param}
+                    {param noAutoEscape:true/}
+                {/call}
+            {else}
+                {i18nText('eae.menu.hide.post.hidden')}
+            {/if}
+        {else}
+            {if $activityContainer.jiveObject.typeWallEntry}
+                {if $type == 'type-context'}
+                    {i18nText('profile.user_wallentries.title', $activityContainer.originalAuthor.displayName)}{sp}
+                    {i18nText('eae.menu.hidden.view.willbe')}
+                {else}
+                    {call jive.shared.soy.i18nHelper}
+                        {param i18nKey}
+                            {i18nText('eae.menu.hidden.view.activity')}
+                        {/param}
+                        {param arg0}
+                            {i18nText('global.all')}
+                        {/param}
+                        {param arg1}
+                            <span class="jive-icon-med {$activityContainer.jiveObject.jiveObjectCSS}"></span>
+                            <a href="{buildUrl($activityContainer.jiveObject.jiveObjectURL)|noAutoescape}" class="title a">
+                                {call jive.eae.common.activityContainerJoSubject}
+                                    {param activityContainer:$activityContainer /}
+                                {/call}
+                            </a>
+                        {/param}
+                        {param arg2}
+                            {i18nText('eae.menu.hidden.view.willbe')}
+                        {/param}
+                        {param noAutoEscape:true/}
+                    {/call}
+                {/if}
+            {else}
+                {call jive.shared.soy.i18nHelper}
+                    {param i18nKey}
+                        {i18nText('eae.menu.hidden.view.activity')}
+                    {/param}
+                    {param arg0}
+                        {if $type == 'type-context'}
+                            {$activityContainer.jiveObject.contentTypeName}
+                        {else}
+                            {i18nText('global.all')}
+                        {/if}
+                    {/param}
+                    {param arg1}
+                        {if $type == 'item'}
+                            <span class="jive-icon-med {$activityContainer.jiveObject.jiveObjectCSS}"></span>
+                            <a href="{buildUrl($activityContainer.jiveObject.jiveObjectURL)|noAutoescape}" class="title a">
+                                {call jive.eae.common.activityContainerJoSubject}
+                                    {param activityContainer:$activityContainer /}
+                                {/call}
+                            </a>
+                            {if $activityContainer.activityList[0] and
+                                $activityContainer.activityList[0].content.commentContentResource and
+                                $activityContainer.activityList[0].content.commentContentResource.objectType == 129}
+                                {sp}{lowercase(i18nText('doc.main.auth_discussion.link'))}
+                            {/if}
+                        {else}
+                            <span class="jive-icon-med {$activityContainer.container.jiveObjectCSS}"></span>
+                            <a href="{buildUrl($activityContainer.container.jiveObjectURL)|noAutoescape}" class="title b">
+                                {$activityContainer.container.name|noAutoescape}
+                            </a>
+                        {/if}
+                    {/param}
+                    {param arg2}
+                        {i18nText('eae.menu.hidden.view.willbe')}
+                    {/param}
+                    {param noAutoEscape:true/}
+                {/call}
+            {/if}
+        {/if}
+        {sp}
+        <span class="j-bullet font-color-meta-light">&#8226;</span>
+        {sp}
+        <a href="#" class="j-js-unhide">{i18nText('eae.menu.hide.undo')}</a>
+        {sp}
+        <a href="#" class="j-js-dismiss"><span class="jive-icon-sml jive-glyph-remove"></span></a>
+        
+    {/if}
+{/template}
+
+
+
+/**
+ * preview links for the collapsed activity
+ *
+ */
+{template .collapsedActivityPreviewLinks}
+    <a href="#" class="j-js-show-full-act j-act-preview" title="{i18nText('eae.menu.show.full')}">
+        <span class="font-color-meta-light paren">(</span>
+        <span class="lnk">{i18nText('eae.menu.show.full.more')}</span>
+        <span class="font-color-meta-light paren">)</span>
+    </a>
+    <a href="#" class="j-js-hide-full-act j-act-preview" title="{i18nText('eae.menu.hide.full')}">
+        <span class="font-color-meta-light paren">(</span>
+        <span class="lnk">{i18nText('eae.menu.show.full.less')}</span>
+        <span class="font-color-meta-light paren">)</span>
+    </a>
+{/template}
+
+/**
+ * Renders newUpdates
+ * @param? count
+ */
+{template .newUpdates}
+    {if $count}
+        <a href="#" class="j-js-update-btn count j-rc6 j-act-updates">
+            {$count}{sp}
+            {if $count>1}
+                {i18nText('eae.stream.updates')}
+            {else}
+                {i18nText('eae.stream.update')}
+            {/if}
+        </a>
+    {/if}
+{/template}
+
+/**
+ * Groups a list of user names for blurbs in latest likes, etc.
+ *
+ * @param groupedUserList list of grouped users
+ * @param othersListLinkID
+ * @param? user - the user viewing the activity
+ */
+{template .groupedUsers}
+    {foreach $groupedUser in $groupedUserList}
+        {if $groupedUser and index($groupedUser) < 3}
+            {if isLast($groupedUser) and length($groupedUserList) > 1}
+                {i18nText('global.and')}{sp}
+            {/if}
+            {if length(match($groupedUser.username, '^__invited__'))}
+                {$groupedUser.email}
+            {elseif not $groupedUser.anonymous}
+                {call jive.shared.displayutil.userDisplayNameLink data="$groupedUser"}
+                    {param displayNameOverride}
+                        {if $user and $user.id == $groupedUser.id}
+                            {i18nText('global.you')}
+                        {/if}
+                    {/param}
+                {/call}
+            {else}
+                {call jive.shared.displayutil.renderGuestDisplayName}
+                    {param message:$groupedUser/}
+                {/call}
+            {/if}
+            {if index($groupedUser) != 2}
+                {if length($groupedUserList) > 2}
+                    ,
+                {/if}
+                {sp}
+            {/if}
+        {/if}
+    {/foreach}
+    {if length($groupedUserList) > 3}
+        {sp}{i18nText('global.and')}{sp}
+        <a href='#' class="j-js-show-grouped-users" data-linkedID="grouped-user-set-{$othersListLinkID}">
+            {length($groupedUserList)-3}{sp}
+            {if length($groupedUserList) > 4}
+                {i18nText('eae.others')}
+            {else}
+                {i18nText('eae.other')}
+            {/if}
+        </a>
+        <div class="j-js-grouped-users js-grouped-users-popover" data-linkedID="grouped-user-set-{$othersListLinkID}" style="display:none">
+            <ul class="j-grouped-user-list j-simple-list">
+            {foreach $groupedUser in $groupedUserList}
+                {if $groupedUser and index($groupedUser) >= 3}
+                    {if length(match($groupedUser.username, '^__invited__'))}
+                        {$groupedUser.email}
+                    {elseif not $groupedUser.anonymous}
+                        <li class="j-grouped-user">
+                            {call jive.shared.displayutil.userDisplayNameLink data="$groupedUser"}
+                                {param displayNameOverride}
+                                    {if $user and $user.id == $groupedUser.id}
+                                        {i18nText('global.you')}
+                                    {/if}
+                                {/param}
+                            {/call}
+                        </li>
+                    {else}
+                        <li class="j-grouped-user">
+                            {call jive.shared.displayutil.renderGuestDisplayName}
+                                {param message:$groupedUser/}
+                            {/call}
+                        </li>
+                    {/if}
+                {/if}
+            {/foreach}
+            </ul>
+        </div>
+    {/if}
+{/template}
+
+/**
+ * Renders ui marker denoting the oldest updated item (used in js)
+ * @param type
+ */
+{template .updatedMarker}
+    <div id="j-as-updated-{$type}"{sp}
+        class="j-js-updated-marker j-updated-marker"{sp}
+        data-type="{$type}">{sp}
+        <p class="marker">
+            {if $type == 'last'}
+                {i18nText('eae.stream.end.updates')}
+            {elseif $type == 'prev'}
+                {i18nText('eae.stream.end.updates.prev')}
+            {/if}
+        </p>
+    </div>
+{/template}
+
+
+
+/**
+ * renders the link at the bottom of the expanded view of an item in the AS to reply to the parent
+ *
+ * @param activityContainer
+ */
+{template .expViewParentReplyLink}
+    <div id="exp-parent-reply-{$activityContainer.jiveObject.domIDPostfix}" class="j-act-parent-reply-view j-act-indent">
+        {if $activityContainer.jiveObject.typeWallEntry and $activityContainer.jiveObject.canComment}
+            <div class="j-act-add-comment j-js-microrte-replyable">
+                <div class="j-act-replyto">
+                    <a id="showMicroRTE_{$activityContainer.jiveObject.domIDPostfix}" href="javascript:void(0);" class="j-reply-micro font-color-meta-light j-rc2">
+                        {i18nText('we.repost.comment')}
+                    </a>
+                </div>
+            </div>
+        {elseif not $activityContainer.jiveObject.typeWallEntry and
+                $activityContainer.jiveObject.objectType != 1500 and
+                $activityContainer.canReply}
+            <nav id="parent-reply-nav-{$activityContainer.jiveObject.domIDPostfix}"
+                class="j-act-actions j-act-actions-init j-act-rte-replyable clearfix"
+                data-extVisible="{$activityContainer.visibleToExtCollaborator}"
+                data-objectID="{$activityContainer.jiveObject.id}"
+                data-objectType="{$activityContainer.jiveObject.objectType}">
+                <div class="j-act-add-comment">
+                    <div class="j-act-replyto">
+                        <a class="j-reply-rte font-color-meta-light j-rc2" href="javascript:void(0);">
+                            {if $activityContainer.activityList[0] and
+                                $activityContainer.activityList[0].content.commentContentResource and
+                                $activityContainer.activityList[0].content.commentContentResource.objectType == 129}
+                                {i18nText('eae.menu.addauthorcomment')}
+                            {elseif $activityContainer.jiveObject.objectType == 1501}
+                                {i18nText('eae.inbox.add.comment.original')}
+                            {else}
+                                {call jive.shared.soy.i18nHelper}
+                                    {param i18nKey}
+                                        {call jive.eae.common.readingPaneBottomReplyLinkKey}
+                                            {param activityContainer: $activityContainer /}
+                                        {/call}
+                                    {/param}
+                                    {param arg0}
+                                        {if $activityContainer.jiveObject.contentTypeName}
+                                            {lowercase($activityContainer.jiveObject.contentTypeName)}
+                                        {else}
+                                        {/if}
+                                    {/param}
+                                    {param noAutoEscape:true/}
+                                {/call}
+                            {/if}
+                        </a>
+                    </div>
+                </div>
+            </nav>
+        {/if}
+    </div>
+{/template}

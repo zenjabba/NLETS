@@ -1,0 +1,1358 @@
+{namespace jive.place autoescape="contextual"}
+
+/**
+* Renders the head section for a "place".
+*
+* @param place the {@link Place} that we are displaying.
+* @param canManageAnnouncements true if the current user can manage announcements
+* @param canManageCategories true if the current user can manage categories
+* @param canMoveContainer true if the user can move the container
+* @param canManageContainer true if the user can manage the container
+* @param canCreateByEmail true if the user can create content via email
+* @param legacyBreadcrumb true if the system property is set to enable legacy breadcrumbs
+* @param breadcrumbBean true if the system property is set to enable legacy breadcrumbs
+*
+* @depends path=/resources/scripts/apps/places/manage/main.js
+* @depends path=/resources/scripts/jive/author-by-email.js
+*/
+{template .head}
+    <title>{$place.placeTypeName}: {$place.name}</title>
+    <meta name="nav.active.link" content="jive-nav-link-place" />
+    <meta name="description" content="{$place.description}" />
+
+    {call jive.shared.soy.resourceInlineJs}
+        {param code}
+            (function() {lb}
+                var manage = new jive.places.Manage.Main({buildJson($place) |noAutoescape}, {lb}
+                    canManageAnnouncements: {if $canManageAnnouncements}true{else}false{/if},
+                    canCreateByEmail: {if $canCreateByEmail}true{else}false{/if},
+                    canManageCategories: {if $canManageCategories}true{else}false{/if},
+                    canMoveContainer: {if $canMoveContainer}true{else}false{/if},
+                    canManageContainer: {if $canManageContainer}true{else}false{/if},
+                    i18n: {buildJson(Map(
+                        p('startFollowing', i18nText($place.placeI18nKeyPrefix +'.startFollow.desc')),
+                        p('stopFollowing', i18nText($place.placeI18nKeyPrefix +'.stopFollow.desc')),
+                        p('followError', i18nText('global.follow.error'))
+                    )) |noAutoescape}
+                {rb});
+            {rb})();
+        {/param}
+    {/call}
+
+    {if $legacyBreadcrumb}
+    <content tag="breadcrumb">
+        {call jive.shared.breadcrumb.legacyBreadcrumbs data="$breadcrumbBean"/}
+    </content>
+    {/if}
+
+{/template}                                                                       
+
+/**
+* Renders the header section for a "place".
+*
+* @param place the {@link Place} that we are displaying.
+* @param placeTabLinks the tab links for the {@link Place} that we are displaying.
+* @param placeManageLink the "manage" link (parent of place manage links)
+* @param placeManageLinks the links that appear under the place manage tab
+* @param announcements the links that appear under the place manage tab
+* @param canManageAnnouncements true if the current user can manage announcements
+* @param canManageCategories true if the current user can manage categories
+* @param? accountCreationEnabled Whether or not account creation is enabled
+* @param? sharingEnabled Whether or not sharing content is enabled
+* @param? validationEnabled Whether or not account validation is enabled
+* @param? moveData Data about if this object was just moved.
+* @param legacyBreadcrumb true if the system property is set to enable legacy breadcrumbs
+* @param breadcrumbBean the bean for the breadcrumbs
+* @param? suppressTabs whether to suppress tabs
+*
+* @depends template=jive.shared.soy.actionLink
+* @depends template=jive.announcements.list
+* @depends template=jive.soy.email_notification.*
+* @depends template=jive.movecontent.successMessage
+* @depends template=jive.shared.breadcrumb.*
+* @depends template=jive.soy.share.control
+* @depends template=jive.people.profile.streamsAssociatedCount
+* @depends i18nKeys=profile.friends.following.link
+* @depends i18nKeys=global.access.content.type.*
+*/
+{template .header}
+    <header class="j-page-header clearfix">
+        <h1>
+        <span title='{i18nText(('global.access.content.type.'+ $place.type.jiveObjectTypeID))}' role='img' class="jive-icon-big {$place.iconCssClass}"></span>
+        <a href="{buildUrl($place.objectURL)}" class="font-color-normal">{$place.name}</a>
+        {if not $legacyBreadcrumb}
+            {if $place.displayParent}
+                <span class="j-page-header-parent font-color-meta"> {i18nText('global.in')} <a href="{buildUrl($place.parentUrl)}">{$place.parentName}</a></span>
+            {/if}
+            {call jive.shared.breadcrumb.contextMenu data="$breadcrumbBean"/}
+        {/if}
+        {if $place.archived}
+            <span class="font-color-meta-light">[{i18nText('global.archived')}]</span>
+        {/if}
+        {if (not $place.partner) and ($place.visibleToPartner) }
+            <span class="font-color-meta-light j-browse-external-access"> <em>{i18nText('partner.browse.ext_access.header')}</em></span>
+        {/if}
+        </h1>
+        <div id="j-place-header-actions">
+            {if not $place.guest}
+
+                {if $sharingEnabled}
+                    {call jive.soy.share.control}
+                        {param objectId:$place.id /}
+                        {param objectType:$place.objectType /}
+                        {param type:'smallButton' /}
+                        {param icon:true /}
+                        {param classes:'j-social-button j-rc5 j-button-share notlast j-ui-elem' /}
+                    {/call}
+                {/if}
+
+                <div class="j-js-follow-controls" data-location="content-page" data-streamsassoc="{$place.streamsAssociatedCount}" aria-live="polite" aria-atomic="true">
+                    <a href="#" class="j-social-button j-rc5 j-button-follow notlast j-ui-elem" id="jive-link-{$place.placeI18nKeyPrefix}-startFollowing" {if $place.followed}style="display: none;"{/if}>
+                        <span class="j-ui-elem">
+                            {i18nText($place.placeI18nKeyPrefix + '.startFollow.link')}{sp}
+                            <span class="jive-icon-med jive-icon-activity-pulse-active j-instreamicon"></span>
+                        </span>
+                    </a>
+                    <a href="#" class="j-social-button j-rc5 j-button-following notlast j-ui-elem" id="jive-link-{$place.placeI18nKeyPrefix}-following" {if not $place.followed}style="display: none;"{/if}>
+                        <span class="j-ui-elem">
+                            {call jive.shared.soy.i18nHelper}
+                                {param i18nKey}
+                                    profile.friends.following.link
+                                {/param}
+                                {param arg0}
+                                    {call jive.people.profile.streamsAssociatedCount}
+                                        {param count: $place.streamsAssociatedCount /}
+                                        {param renderLocation: 'content-page' /}
+                                    {/call}
+                                {/param}
+                                {param noAutoEscape:true/}
+                            {/call}
+                        </span>
+                    </a>
+                </div>
+
+                {if $place.membershipSupported}
+                <a href="#" class="j-social-button j-rc5 j-button-join j-ui-elem" id="jive-link-joinSocialGroup" {if not $place.canJoinPlace}style="display: none;"{/if}>
+                    <span class="j-ui-elem">
+                        {i18nText('sgroup.join.link')}
+                    </span>
+                </a>
+                <a href="#" class="j-social-button j-rc5 j-button-leave j-ui-elem" id="jive-link-leaveSocialGroup" {if not $place.canLeavePlace}style="display: none;"{/if}>
+                    <span class="j-ui-elem">
+                        {i18nText('sgroup.leave.link')}
+                    </span>
+                </a>
+                {/if}
+
+                {if $suppressTabs}
+                    {call .manageLink}
+                        {param isButton: true /}
+                        {param placeManageLink: $placeManageLink /}
+                    {/call}
+                {/if}
+            {/if}
+        </div>
+
+        {call jive.announcements.list}
+            {param announcements: $announcements /}
+            {param showDismiss: false /}
+        {/call}
+    </header>
+
+    {if $moveData}
+        {call jive.movecontent.successMessage data="$moveData"/}
+    {/if}
+
+    <!-- Display guest tip if unauthenticated -->
+    {if ($place.guest)}
+         <div class="j-guest-tip jive-info-box j-rc5">
+            {if $accountCreationEnabled}
+                {call jive.shared.soy.i18nHelper}
+                    {param i18nKey}browse.guesttip.place{/param}
+                    {param arg0}<a id="jive-guest-link-auth" href="{buildUrl('/login.jspa')}">{i18nText('browse.guesttip.login')}</a>{/param}
+                    {param arg1}{i18nText($place.placeI18nKeyPrefix)}{/param}
+                    {param noAutoEscape}true{/param}
+                {/call}
+                &nbsp;
+                {if $validationEnabled}
+                    {call jive.shared.soy.i18nHelper}
+                        {param i18nKey}browse.guesttip.joinnow{/param}
+                        {param arg0}<a href="{buildUrl('/login.jspa?registerOnly=true')}">{i18nText('browse.guesttip.join')}</a>{/param}
+                        {param noAutoEscape}true{/param}
+                    {/call}
+                {else}
+                    {call jive.shared.soy.i18nHelper}
+                        {param i18nKey}browse.guesttip.joinnow{/param}
+                        {param arg0}<a id="jive-guest-link-reg" href="{buildUrl('/create-account.jspa')}">{i18nText('browse.guesttip.join')}</a>{/param}
+                        {param noAutoEscape}true{/param}
+                    {/call}
+                {/if}
+            {else}
+                {call jive.shared.soy.i18nHelper}
+                    {param i18nKey}browse.guesttip.place{/param}
+                    {param arg0}<a id="jive-guest-link-auth" href="{buildUrl('/login.jspa')}">{i18nText('browse.guesttip.login')}</a>{/param}
+                    {param arg1}{i18nText($place.placeI18nKeyPrefix)}{/param}
+                    {param noAutoEscape}true{/param}
+                {/call}
+            {/if}
+         </div>
+    {/if}
+
+    <!-- BEGIN browse place tabs -->
+    {if not $suppressTabs}
+    <nav class="j-bigtab-nav j-rc5 j-rc-none-bottom" role="navigation" aria-label="{i18nText('place.subnav.label')}">
+        <ul class="j-tabbar j-rc5 j-rc-none-bottom">
+            {foreach $item in $placeTabLinks}
+                {if ($item.visible)}
+                    {if ($place.objectURL == '/groups/feedback' and $item.id == 'jive-place-link-overview') or $place.objectURL != '/groups/feedback'}
+                        <li id="{$item.id}-tab" {if $item.id == $place.tab}class="j-tab-selected active j-ui-elem"{/if}>
+                            {call jive.shared.soy.actionLink data="$item"}
+                                {param hideIcon:true /}
+                                {param activeTab: $item.id == $place.tab /}
+                            {/call}
+                        </li>
+                    {/if}
+                {/if}
+           {/foreach}
+           {if not $suppressTabs}
+               {call .manageLink}
+                   {param isButton: false /}
+                   {param placeManageLink: $placeManageLink /}
+               {/call}
+           {/if}
+        </ul>
+    </nav>
+    {/if}
+    <!-- END browse place tabs -->
+
+    <div id="j-place-manage-container" class="j-menu" style="display: none">
+        <ul class="j-place-manage-links">
+        {foreach $item in $placeManageLinks}
+        {if ($item.visible)}
+            <li>{call jive.shared.soy.actionLink data="$item"}
+                    {param hideIcon: true/}
+                {/call}
+            </li>
+        {/if}
+        {/foreach}
+        </ul>
+    </div>
+
+    // Author by email modal
+    {if $place.canCreateByEmail}
+    <div class="jive-modal jive-modal-medium jive-author-by-email-modal" id="jive-author-by-email-modal">
+        <header>
+            <h2>{i18nText('author.by.email.modal.title')}</h2>
+        </header>
+        <a href="#" class="j-modal-close-top close">{i18nText('author.by.email.modal.close')} <span class="j-close-icon j-ui-elem" role="img"></span></a>
+        <div class="jive-modal-content" id="vcard-modal">
+        </div>
+    </div>
+    {/if}
+    // End Author by email modal
+
+
+    // Announcement Modal
+    {if $canManageAnnouncements}
+    <div class="jive-modal" id="jive-modal-announcements">
+        <header>
+            <h2 class="jive-modal-title jive-modal-title-manage-announcements">{i18nText('announcement.manage.title')}</h2>
+            <h2 class="jive-modal-title jive-modal-title-add-announcement" style="display: none">{i18nText('announcement.manage.add.title')}</h2>
+            <h2 class="jive-modal-title jive-modal-title-edit-announcement" style="display: none">{i18nText('announcement.manage.edit.title')}</h2>
+        </header>
+        <a href="#" class="j-modal-close-top close">{i18nText('global.close')}  <span class="j-close-icon j-ui-elem" role="img"></span></a>
+
+        <div id="announcements-modal"></div>
+    </div>
+    {/if}
+    // End Announcement Modal
+
+    // Category Modal
+    {if $canManageCategories}
+    <div class="jive-modal" id="jive-modal-categories">
+        <header>
+            <h2 class="jive-modal-title jive-modal-title-manage-categories">{i18nText('category.manage.title')}</h2>
+            <h2 class="jive-modal-title jive-modal-title-add-category" style="display: none">{i18nText('category.manage.add.title')}</h2>
+            <h2 class="jive-modal-title jive-modal-title-edit-category" style="display: none">{i18nText('category.manage.edit.title')}</h2>
+        </header>
+        <a href="#" class="j-modal-close-top close">{i18nText('global.close')}  <span class="j-close-icon j-ui-elem" role="img"></span></a>
+
+        <div id="categories-modal"></div>
+    </div>
+    {/if}
+     // End Category Modal
+
+    {if $place.canArchive}
+    <!-- BEGIN archive panel -->
+    <div class="jive-modal" id="jive-modal-archive-project">
+        <header>
+        <h2 class="jive-modal-title jive-modal-title-unarchive-project">{i18nText('project.unarchive.title')}</h2>
+        <h2 class="jive-modal-title jive-modal-title-archive-project">{i18nText('project.archive.title')}</h2>
+        </header>
+        <section id="archive-modal" class="jive-modal-content jive-modal-archive-project clearfix"></section>
+    </div>
+    <!-- END archive panel -->
+    {/if}
+
+{/template}
+
+/**
+* Renders the manage link for a "place".
+*
+* @param placeManageLink the "manage" link (parent of place manage links)
+* @param isButton whether the link should be rendered as a button
+*/
+{template .manageLink}
+    {if $placeManageLink and $placeManageLink.visible}
+        {if $isButton}
+            <div id="{$placeManageLink.id}-tab">
+                <a {if ($placeManageLink.id)}id="{$placeManageLink.id}"{/if} href="{buildUrl($placeManageLink.url, $placeManageLink.urlParams)}" class="j-social-button j-rc5 j-button-join j-ui-elem">
+                    <span class="j-ui-elem">
+                        <span class="jive-icon-med jive-icon-admin-actions"></span>{i18nText($placeManageLink.nameKey)}
+                        <span class="jive-icon-sml jive-glyph-admin-down"></span>
+                    </span>
+                </a>
+            </div>
+        {else}
+            <li id="{$placeManageLink.id}-tab">
+                <a {if ($placeManageLink.id)}id="{$placeManageLink.id}"{/if} href="{buildUrl($placeManageLink.url, $placeManageLink.urlParams)}">
+                    <span class="jive-icon-med jive-icon-admin-actions"></span>{i18nText($placeManageLink.nameKey)}
+                    <span class="jive-icon-sml jive-glyph-admin-down"></span>
+                </a>
+            </li>
+        {/if}
+    {/if}
+{/template}
+
+/**
+* Renders the overview section for a "place".
+*
+* @param place the {@link Place} that we are displaying.
+* @param widgetMarkup the html markup from the widget layout
+* @param widgetTypeKey the key for the specified widget type
+* @param canManageContainer true if the user can manage the container
+* @param customizeMessageSeen true if the place customize message has been seen
+* @param placeOverviewMessageSeen true if the place overview message has been seen for this place (the banner on the overview page)
+* @param customizeNow true if we need to open the customization panel automatically, false otherwise. This is triggered from the manage link
+* @param? suppressTabs whether to suppress tabs
+*
+* @depends path=/resources/scripts/jquery/ui/ui.draggable.js
+* @depends path=/resources/scripts/jquery/ui/ui.slider.js
+* @depends path=/resources/scripts/jivewidgets.js
+* @depends path=/resources/scripts/jivewidgetbridges.js
+* @depends path=/resources/scripts/jive/widget/widget-container.js
+* @depends path=/resources/scripts/jquery/jquery.safelyLoad.js
+*/
+{template .overview}
+    <head>
+        {call .head data="all" /}
+
+        <link rel="stylesheet" href="{resourceUrl('/styles/jive-widgets.css')}" type="text/css" media="all" />
+        {if $place.objectType == 700}
+            <link rel="stylesheet" href="{resourceUrl('/styles/jive-socialgroup.css')}" type="text/css" media="all" />
+        {/if}
+        {if $place.objectType == 600}
+            <link rel="stylesheet" href="{resourceUrl('/styles/jive-project.css')}" type="text/css" media="all" />
+
+        {/if}
+
+        {call jive.shared.soy.resourceInlineJs}
+        {param code}
+            var widgetContainer = new jive.widgets.Container({lb}
+                'widgetType': '{$widgetTypeKey}',
+                'renderWidgetAction': '{buildUrl('/render-widget.jspa')}',
+                'containerID': '{$place.id}',
+                'containerType': '{$place.objectType}'
+            {rb});
+            define('widgetContainer', widgetContainer);
+            function toggleWidgetPanel() {lb}
+                $j(document.body).addClass('jive-widget-progresscursor').addClass('jive-body-widget-customizing');
+                // hide the page header, tab bar, and customize info message (if present), and hide popover
+                $j("#j-place-manage-container").trigger("close");  
+                $j('.j-page-header').hide();
+                $j('.j-tab-nav').hide();
+                $j('.j-page-customizable-message').hide();
+                // show loading panel
+                $j("#jive-widgets-panel-loading").show();
+                $j("#jive-widget-container").safelyLoad('{buildUrl('customize-container.jspa', 'containerType', $place.objectType, 'containerID', $place.id)|noAutoescape}', {lb} cache: false {rb}, function() {lb}
+                    $j("#jive-widgets-panel-loading").hide();
+                    $j("#jive-widgets-panel").fadeIn(500);
+                    $j("#jive-widgets-warning").fadeIn(500);
+                    $j(document.body).removeClass('jive-widget-progresscursor');
+                    {if not $customizeMessageSeen}
+                        $j('#customize-message').slideDown();
+                    {/if}
+                {rb});
+            {rb}
+
+            // Piggy backing off of widgetBridges to the gadget tab switching as well
+            var bridgeIDs = new Array();
+            var widgetBridges = new WidgetBridges({lb}
+                bridgeAction : "{buildUrl('bridge-widgets.jspa')}",
+                bridgeLoginAction : "{buildUrl('bridge-widgets!login.jspa')}",
+                bridgeLogoutAction : "{buildUrl('bridge-widgets!logout.jspa')}",
+                bridgeIDs: bridgeIDs
+            {rb});
+
+            function dismissCustomizeMessage() {lb}
+                $j('#customize-message').slideUp();
+                if ($j('#customize-message').find('#dont-display-message').prop('checked')) {lb}
+                    var userSource = new jive.Browse.User.ItemSource();
+                    userSource.setUserProperty({lb} userID: 'current', propName: 'jive.customizeWidgetMsg.closed', propValue: 'true' {rb});
+                {rb}
+                return false;
+            {rb}
+
+            function dismissPlaceOverviewMessage() {lb}
+                $j('a.j-box-dismiss').closest('div.j-page-customizable-message').slideUp();
+                var userSource = new jive.Browse.User.ItemSource();
+                var placeOverviewProp =  'jive.placeOverviewMsg.closed.' + {$place.objectType} + '.' + {$place.id};
+                userSource.setUserProperty({lb} userID: 'current', propName: placeOverviewProp, propValue: 'true' {rb});
+                return false;
+            {rb}
+
+            function removeWidgetFrame(button) {lb}
+                var frameID = widgets.getWidgetFrameID(button);
+                if (frameID) {lb}
+                    widgets.removeWidgetFrame(frameID);
+                {rb}
+            {rb}
+
+            function editWidgetFrame(button) {lb}
+                var frameID = widgets.getWidgetFrameID(button);
+                if (frameID) {lb}
+                    widgets.editWidgetFrame(frameID);
+                {rb}
+            {rb}
+
+            function dismissWidgetMessage(e) {lb}
+                $j(this).closest('.widget-message').slideUp();
+                var prop = $j(link).attr('data-property');
+                if (prop) {lb}
+                    var userSource = new jive.Browse.User.ItemSource();
+                    userSource.setUserProperty({lb} userID: 'current', propName: prop, propValue: 'true' {rb});
+                {rb}
+                e.preventDefault();
+            {rb}
+
+        function dismissWidgetMessage(link) {lb}
+            $j(link).closest('.widget-message').slideUp();
+        {rb}
+
+            $j(document).ready(function() {lb}
+                widgetContainer.renderAll();
+                // this message is when the user is in edit mode with some additional widget config instructions.
+                $j('#customize-message > #dismiss-link').click(dismissCustomizeMessage);
+                $j('.widget-remove-link').live('click', function(e) {lb} removeWidgetFrame(this); e.preventDefault(); {rb});
+                $j('.widget-edit-link').live('click', function(e) {lb} editWidgetFrame(this); e.preventDefault(); {rb});
+                $j('.widget-dismiss-link').live('click', function(e) {lb} dismissWidgetMessage(this); e.preventDefault(); {rb});
+            
+                $j('#jive-place-link-manage-overview').click(function(e) {lb}
+                    toggleWidgetPanel();
+                    e.preventDefault();
+                    {rb}
+                );
+                // this message is on the overview page in the standard view with an indication that the user can configure the home page.
+                $j('a.j-box-dismiss').click(dismissPlaceOverviewMessage);
+
+
+
+                {if $customizeNow}
+                    toggleWidgetPanel();
+                {/if}
+            {rb});
+
+        {/param}
+        {/call}
+    </head>
+
+    <body class="j-body-place">
+
+        {call .header data="all" /}
+
+        <div class="j-layout j-contained j-contained-tabs j-rc4 {if not $suppressTabs}j-rc-none-top{/if} clearfix">
+
+            {if $canManageContainer}
+                {if not $placeOverviewMessageSeen}
+                <div class="j-box jive-widget j-page-customizable-message j-rc5">
+                    <header>
+                        <h3>{i18nText('place.customize.heading')}</h3>
+                        <nav>
+                            <a href="#" class="j-box-dismiss"><span class="jive-icon-sml jive-icon-follow-stop"></span>{i18nText('place.dismiss.link')}</a>
+                        </nav>
+                    </header>
+                    <div class="j-box-body">
+                        <p>{i18nText('place.customize.instructions')}</p>
+
+                        <a href="#" onclick="toggleWidgetPanel(); return false;" class="j-button">{i18nText('sgroup.tab.customize')}</a>
+                    </div>
+                </div>
+                {/if}
+                {if not $customizeMessageSeen}
+                    {call .editPageMessage /}
+                {/if}
+            {/if}
+           
+            <div id="jive-widgets-panel-loading" style="display: none">
+                <p class="font-color-meta-light"><img src="{buildUrl('/images/jive-image-loading.gif')}" alt="{i18nText('customize.loading')}"/>{i18nText('customize.loading')}</p>
+            </div>
+
+
+            <div id="jive-widget-container">
+                <div id="jive-widget-content" class="clearfix">
+                    {$widgetMarkup |noAutoescape}
+                </div>
+            </div>
+
+        </div>
+
+    </body>
+{/template}
+
+/**
+* Renders the tasks section for a "place".
+*
+* @param place the {@link Place} that we are displaying.
+* @param taskID the id of the selected task
+* @param taskFilter the filter for the task list view
+*
+* @depends path=/resources/scripts/jivetasklist.js
+*/
+{template .tasks}
+    <head>
+        {call .head data="all" /}
+
+        {call jive.shared.soy.resourceInlineJs}
+        {param code}
+            var editTaskCompleteAction = "{buildUrl('edit-task!complete.jspa')}";
+            var editTaskIncompleteAction = "{buildUrl('edit-task!incomplete.jspa')}";
+            var editTaskTakeAction = "{buildUrl('edit-task!take.jspa')}";
+            var editTaskDeleteAction = "{buildUrl('edit-task!delete.jspa')}";
+            var viewTaskListAction = "{buildUrl('view-task-list.jspa', 'project', $place.id)|noAutoescape}";
+            var taskDeleteConfirmation = "{i18nText('task.delete.confirm.msg')|escapeJs}";
+            var taskListUnauthorizedMessage = "{i18nText('task.list.unauth')|escapeJs}";
+            var taskListErrorMessage = "{i18nText('task.list.error')|escapeJs}";
+            var taskListFilter = "{$taskFilter|escapeJs}";
+
+            $j(document).ready(function() {lb}
+                window.jivetasklist = new JiveTaskList("jive-task-list-container", editTaskCompleteAction, editTaskIncompleteAction, editTaskTakeAction, editTaskDeleteAction, viewTaskListAction, taskDeleteConfirmation, taskListUnauthorizedMessage, taskListErrorMessage);
+                window.jivetasklist.setFilter(taskListFilter);
+
+                $j('#jive-task-list-container').load('{buildUrl('view-task-list.jspa')}',
+                    {lb}
+                        'project': {$place.id}
+                        {if $taskID > 0}, 'task': {$taskID}{/if}
+                        {if $taskFilter != ''}, 'filter': '{$taskFilter|escapeJs}'{/if}
+                    {rb}
+                );
+            {rb});
+        {/param}
+        {/call}
+    </head>
+
+    <body class="j-body-place">
+
+        {call .header data="all" /}
+
+        <div class="j-layout j-layout-l j-contained j-contained-tabs j-contained-tabs-place j-rc4 clearfix">
+
+            <div class="j-colum-wrap-l">
+                <div class="j-column j-column-l">
+
+                    <div id="jive-task-list-container">
+                        <p class="font-color-meta-light"><img src="{buildUrl('/images/jive-image-loading.gif')}" alt="{i18nText('customize.loading')}"/>{i18nText('customize.loading')}</p>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+    </body>
+{/template}
+
+/**
+* Renders the content section for a "place".
+*
+* @param place the {@link Place} that we are displaying.
+* @param browseViewID A unique name for this browse view.
+* @param archetypeID The ID of the archetype associated with this browse view.
+* @param itemsView A collection of {@link ContentObjectViewBean}s.
+* @param filterGroup A {@link FilterGroupBean} object with nested filters.
+* @param guest Whether or not the current user is the guest user
+* @param targetUserID The userID of the items being displayed.
+* @param? layoutClass An optional class passed to the layout div element
+* @param urlParams map of query parameters for the last request
+* @param urlPath path for the last request
+* @param feedUrl The url of the resource that provides a feed representation of this view
+* @param feedsEnabled
+*
+* @depends path=/resources/scripts/apps/browse/user/model/user_source.js
+* @depends path=/resources/scripts/apps/browse/content/model/content_source.js
+* @depends path=/resources/scripts/apps/filters/main.js
+* @depends path=/resources/scripts/apps/browse/activity/info/main.js
+* @depends path=/resources/scripts/apps/bookmark_app/main.js
+* @depends template=jive.place.noContent
+* @depends template=jive.browse.content.*
+*/
+{template .content}
+
+    <head>
+        {call .head data="all" /}
+         <link class="js-content-feed-link" href="{$feedUrl}" rel="alternate" type="application/atom+xml"  />
+
+        {call jive.shared.soy.resourceInlineJs}
+        {param code}
+        $j(document).ready(
+            function() {lb}
+                var contentSource = new jive.Browse.Content.ItemSource();
+                var filterApp = new jive.Filters.Main({lb}
+                    itemSource: contentSource,
+                    userPrefSource: new jive.Browse.User.ItemSource(),
+                    extraParams: {lb}containerType: containerType, containerID: containerID{rb},
+                    guest: {$guest},
+                    targetUserID: '{$targetUserID}',
+                    browseViewID: '{$browseViewID |escapeJs}',
+                    archetypeID: '{$archetypeID |escapeJs}',
+                    filterGroup: {buildJson($filterGroup) |noAutoescape},
+                    itemViewID: '{$itemsView.itemViewID |escapeJs}',
+                    pageSize: {$itemsView.pageSize |escapeJs},
+                    token: '{$itemsView.token}',
+                    noResultTemplateConfig: {lb}
+                      templateName: 'jive.place.noContent',
+                      data: {lb}i18nKeyPrefix: '{$place.placeI18nKeyPrefix |escapeJs}'{rb}
+                    {rb}
+                {rb});
+                var jiveFollow = new jive.FollowApp.Main({lb}
+                    i18n:null
+                {rb});
+                var bookmarkApp = new jive.BookmarkApp.Main({lb}createModalAction: '{buildUrl('create-favorite-popup!input.jspa')}'{rb});
+            {rb});
+        {/param}
+    {/call}
+
+    </head>
+
+    <body class="j-body-place">
+
+        {call .header data="all" /}
+
+        <!-- BEGIN layout -->
+        <div class="j-layout j-layout-sl j-contained j-contained-tabs {if $layoutClass}{$layoutClass}{/if} j-rc4 j-rc-none-top clearfix">
+
+            <!-- BEGIN large column -->
+            <div class="j-column-wrap-l">
+                <div class="j-column j-column-l">
+
+                    <!-- BEGIN browse & filter block -->
+
+                    {call jive.browse.filter.filters data="$filterGroup"}
+                        {param itemsView: $itemsView /}
+                        {param urlParams: $urlParams /}
+                        {param urlPath: $urlPath /}
+                    {/call}
+
+                    <div id="j-browse-item-grid" class="j-box-body" role="main" aria-label="{i18nText('browse.filter.grid')}">
+                        {call jive.browse.grid.itemGrid data="$itemsView"}
+                            {param browseViewID: $browseViewID/}
+                            {param archetypeID: $archetypeID/}
+                            {param noResultTemplateConfig: ['templateName': 'jive.place.noContent', 'data': ['i18nKeyPrefix': $place.placeI18nKeyPrefix, 'unfiltered': true ]]/}
+                        {/call}
+                    </div>
+
+                    {call jive.browse.grid.moreSearchResultsAvailableHolder data="$itemsView"/}
+
+                    <div class="j-browse-filter-row j-bottom-row j-rc4">
+                        {call jive.shared.soy.paginationLinks}
+                            {param current: $itemsView.pageNumber /}
+                            {param max: $itemsView.pageNumber + ($itemsView.hasNext ? 1 : 0) /}
+                            {param pageSize: $itemsView.pageSize /}
+                            {param urlParams: $urlParams /}
+                            {param urlPath: $urlPath /}
+                        {/call}
+                    </div>
+
+                    <!-- END browse & filter block -->
+                    
+	 				<!-- BEGIN RSS Feed Link -->
+	 				{if $feedsEnabled}
+                        <div id="j-friend-feed-link" class="j-friend-feed-link">
+                            <span class="jive-icon-med jive-icon-rss"></span>
+                            <a class="js-content-feed-link" href="{$feedUrl}" data-base-url="{buildUrl('view-browse-feed.jspa','browseSite', 'place-content', 'browseViewID', $browseViewID)}">{i18nText('browse.rss.feed')}</a>
+                        </div>
+	     			{/if}
+	     			<!-- END RSS Feed Link -->                    
+                </div>
+            </div>
+            <!-- END large column -->
+
+            <!-- BEGIN small column -->
+            <div class="j-column-wrap-s j-sidebar-left">
+                <div class="j-column j-column-s j-column-s-nav">
+
+                    {if ($filterGroup.filters)}
+                        {foreach $filter in $filterGroup.filters}
+                            {if ($filter.parentOfNested)}
+                              <nav class="j-second-nav j-second-nav-categories">
+                                <header>
+                                    <h4>{i18nText('global.categories')}
+                                        {call .clearCategoriesLink data="$filter"}
+                                            {param appliedFilterIDs: $filterGroup.appliedFilterIDs /}
+                                            {param urlParams: $urlParams /}
+                                            {param urlPath: $urlPath /}
+                                        {/call}
+                                    </h4>
+                                </header>
+                                <ul>
+                                {foreach $categoryFilter in $filter.children}
+                                    {if $categoryFilter.nested}
+                                        {call jive.browse.filter.filterGroupItem data="$categoryFilter"}
+                                            {param descriptionIsKey: false/}
+                                            {param iconClass: 'jive-icon-med jive-icon-folder'/}
+                                            {param selected: indexOf($filterGroup.appliedFilterIDs, $categoryFilter.id) > -1 /}
+                                            {param urlPath: $urlPath /}
+                                        {/call}
+                                    {/if}
+                                {/foreach}
+                                </ul>
+                              </nav>
+                            {/if}
+                        {/foreach}
+                    {/if}
+
+                    {call jive.browse.actionlink.actionLinkGroup data="all" /}
+
+                    <!-- BEGIN blog link (if there is a blog in this place) -->
+                    {if $place.blogName and $place.blogUrl}
+                        <div class="j-box j-box-placeblog">
+                            <header><h4>{i18nText('place.viewblog.link')}</h4></header>
+                            <div class="j-box-body">
+                                <p><a href="{buildUrl($place.blogUrl)}">{$place.blogName}</a></p>
+                            </div>
+                        </div>
+                    {/if}
+                    <!-- END blog link -->
+
+                </div>
+            </div>
+            <!-- END small column -->
+
+        </div>
+        <!-- END layout -->
+
+    </body>
+{/template}
+
+/**
+ * Message to display if there is no content.
+ *
+ * @param i18nKeyPrefix
+ * @param? unfiltered if true, indicates that there is no content even
+ * before filters are applied
+ *
+ * @depends i18nKeys=place.content.filtered.none.* scope=client
+ */
+{template .noContent}
+    <div class="j-browse-info j-browse-empty j-empty font-color-meta">
+        {if $unfiltered}
+            {i18nText('place.content.none.' + $i18nKeyPrefix)}
+        {else}
+            {i18nText('place.content.filtered.none.' + $i18nKeyPrefix)}
+        {/if}
+    </div>
+{/template}
+
+/**
+* Renders the people section for a "place".
+*
+* @param place the {@link Place} that we are displaying.
+* @param browseViewID A unique name for this browse view.
+* @param archetypeID The ID of the archetype associated with this browse view.
+* @param itemsView A collection of {@link UserBean}s.
+* @param? layoutClass An optional class passed to the layout div element
+* @param filterGroup A {@link FilterGroupBean} object with nested filters.
+* @param urlParams map of query parameters for the last request
+* @param urlPath path for the last request
+* @param hideFilterGroup Whether or not the filter group should be displayed.
+* @param guest Whether or not the current user is the guest user
+* @param targetUserID The userID of the items being displayed.
+* @param visibilityMessage The message detailing the visibility of the place
+* @param visibilityCheckEnabled True if we should render the visibility checker, false otherwise.
+* @param bidirectionalConnections Whether or not friending is bidirectional or not.
+* @param owners the list of user beans that represent the owners of this place
+*
+* @depends path=/resources/scripts/apps/browse/user/model/user_source.js
+* @depends path=/resources/scripts/apps/filters/main.js
+* @depends path=/resources/scripts/jive/gui/window.js
+* @depends path=/resources/scripts/jquery/jquery.tooltip.js
+* @depends path=/resources/scripts/apps/userpicker/main.js
+* @depends path=/resources/scripts/apps/access_check/views/access_view.js
+* @depends path=/resources/scripts/apps/access_check/models/access_source.js
+* @depends path=/resources/scripts/apps/access_check/main.js
+* @depends path=/resources/scripts/apps/browse/activity/info/main.js
+* @depends template=jive.browse.user.*
+* @depends template=jive.place.noPeople
+*/
+{template .people}
+
+    <head>
+        {call .head data="all" /}
+
+        {call jive.shared.soy.resourceInlineJs}
+            {param code}
+            $j(document).ready(
+             function() {lb}
+                 var accessCheckI18n = {lb}hasAccess : '{i18nText('place.visibility.user.access') |escapeJs}',
+                            noAccess : '{i18nText('place.visibility.user.noaccess') |escapeJs}',
+                            noUser : '{i18nText('place.visibility.user.none') |escapeJs}',
+                            warning : '{i18nText('place.visibility.user.warning') |escapeJs}',
+                            loading : '{i18nText('customize.loading') |escapeJs}',
+                            error : '{i18nText('error.general') |escapeJs}'
+                            {rb};
+
+                 var jiveAccessCheck = new jive.AccessCheckApp.Main({lb}objectType: containerType, objectID:containerID, i18n:accessCheckI18n{rb});
+                 
+                 var userSource = new jive.Browse.User.ItemSource();
+                  var options = {lb}
+                     itemSource: userSource,
+                     userPrefSource: new jive.Browse.User.ItemSource(),
+                     browseViewID: '{$browseViewID |escapeJs}',
+                     archetypeID: '{$archetypeID |escapeJs}',
+                     guest: {$guest},
+                     targetUserID: '{$targetUserID}',
+                     filterGroup: {buildJson($filterGroup) |noAutoescape},
+                     extraParams: {lb}containerType: containerType, containerID: containerID{rb},
+                     itemViewID: '{$itemsView.itemViewID |escapeJs}',
+                     pageSize: {$itemsView.pageSize |escapeJs},
+                     token: '{$itemsView.token}',
+                     bidirectionalConnections: {$bidirectionalConnections},
+                     recommenderType: 'people',
+                     i18n: {lb}
+                        errMsg: '{i18nText('browse.people.conx.label.err.noname') |escapeJs}',
+                        delMsg: '{i18nText('browse.people.conx.label.delete') |escapeJs}'
+                     {rb},
+                     noResultTemplateConfig: {lb}templateName: 'jive.place.noPeople', data: {lb}i18nKeyPrefix: '{$place.placeI18nKeyPrefix |escapeJs}'{rb}{rb}
+                 {rb};
+
+                 var filterApp = new jive.Filters.Main(options);
+
+                 $j('#j-browse-item-grid').delegate('a.js-create-direct-message', 'click', function(e) {lb}
+                     e.preventDefault();
+                     var userID = $j(this).closest('[data-object-id]').attr('data-object-id');
+                     jive.DirectMessaging.sendMessageToUserIds([userID]);
+                 {rb});
+             {rb});
+            {/param}
+        {/call}
+
+    </head>
+
+    <body class="j-body-place">
+
+        {call .header data="all" /}
+
+        <div class="j-layout j-layout-sl j-contained j-contained-tabs  {if $layoutClass}{$layoutClass}{/if} j-rc4 j-rc-none-top clearfix">
+
+        <div class="j-colum-wrap-s">
+            <div class="j-column j-column-s">
+
+                {if not $hideFilterGroup}
+                    {call jive.browse.filter.filterGroup data="$filterGroup"}
+                        {param urlPath: $urlPath /}
+                    {/call}
+                {/if}
+
+                {if $owners and length($owners) > 0}
+                <div class="j-box j-box-owners">
+                    <header>
+                        <h4>{i18nText($place.placeI18nKeyPrefix + '.overview.owner')}</h4>
+                    </header>
+                    <div class="j-box-body">
+                        <ul class="j-people-list">
+                        {foreach $owner in $owners}
+                            <li>
+                                {call jive.shared.displayutil.avatar data="$owner"}
+                                    {param size: 24/}
+                                {/call}
+                                <span>{call jive.shared.displayutil.userDisplayNameLink data="$owner"/}</span>
+                            </li>
+                        {/foreach}
+                        </ul>
+                    </div>
+                </div>
+                {/if}
+
+                <div class="j-box j-box-visibility">
+                    <header>
+                        <h4>{i18nText('place.visibility.header')}</h4>
+                    </header>
+                    <div class="j-box-body">
+                        <span>{$visibilityMessage}</span>
+                        {if $visibilityCheckEnabled}
+                        <div class="j-box-visibility-check">
+                            <label for="jive-access-autocomplete" class="j-508-label">{i18nText('place.visibility.header')}</label>
+                            <input id="jive-access-autocomplete" type="text" role="combobox" />
+                            <div id="jive-access-results" class="clearfix"></div>
+                        </div>
+                        {/if}
+                    </div>
+                </div>
+
+                {call jive.browse.actionlink.actionLinkGroup data="all" /}
+
+            </div>
+
+            <div class="j-colum-wrap-l">
+                <div class="j-column j-column-l">
+
+                    <!-- BEGIN browse & filter block -->
+                    {call jive.browse.filter.filters data="$filterGroup"}
+                        {param itemsView: $itemsView /}
+                        {param urlParams: $urlParams /}
+                        {param urlPath: $urlPath /}
+                    {/call}
+
+                    <div id="j-browse-item-grid" class="j-box-body" role="main" aria-label="{i18nText('browse.filter.grid')}">
+                     {if ($itemsView.template)}
+                         {call jive.shared.soy.render}
+                            {param templateName: $itemsView.template /}
+                            {param data: $itemsView /}
+                            {param failGracefully: false /}
+                         {/call}
+                     {else}
+                         {call jive.browse.grid.itemGrid data="$itemsView"}
+                            {param browseViewID: $browseViewID/}
+                            {param archetypeID: $archetypeID/}
+                            {param headerTemplate:'jive.browse.user.detailUserHeader'/}
+                            {param noResultTemplateConfig: ['templateName': 'jive.place.noPeople', 'data': ['i18nKeyPrefix': $place.placeI18nKeyPrefix, 'unfiltered': true ]]/}
+                         {/call}
+                     {/if}
+                     </div>
+
+                     {call jive.browse.grid.moreSearchResultsAvailableHolder data="$itemsView"/}
+
+                     <div class="j-browse-filter-row j-bottom-row j-rc4">
+                         {call jive.shared.soy.paginationLinks}
+                             {param current: $itemsView.pageNumber /}
+                             {param max: $itemsView.pageNumber + ($itemsView.hasNext ? 1 : 0) /}
+                             {param pageSize: $itemsView.pageSize /}
+                             {param urlParams: $urlParams /}
+                             {param urlPath: $urlPath /}
+                         {/call}
+                     </div>
+                     <!-- END browse & filter block -->
+
+
+                </div>
+            </div>
+        
+        </div>
+
+    </body>
+
+{/template}
+
+/**
+ * Message to display if there are no people.
+ *
+ * @param i18nKeyPrefix
+ * @param? unfiltered if true, indicates that there is no content even
+ * before filters are applied
+ *
+ * @depends i18nKeys=place.people.filtered.none.* scope=client
+ */
+{template .noPeople}
+    <div class="j-browse-info j-browse-empty j-empty font-color-meta">
+        {if $unfiltered}
+            {i18nText('place.people.none.' + $i18nKeyPrefix)}
+        {else}
+            {i18nText('place.people.filtered.none.' + $i18nKeyPrefix)}
+        {/if}
+    </div>
+{/template}
+
+/**
+* Renders the private message view for a "place".
+*
+* @param place the {@link Place} that we are displaying.
+* @param creationDateString the string value of the date the place was created
+* @param type the type of the place (open, private, secret)
+* @param invitationOnly true if the place is invitation only
+* @param requireApprovalToJoin true if the place requires approval to join
+* @param inviteFromOwner true if the current user has been invited by an owner
+* @param systemAdmin true if the current user is a system admin
+* @param memberExists true if the current user is already a member
+* @param pendingApproval true if the current user is a member but hasn't been approved
+* @param anonymous true if the current user is anonymous
+* @param imageAvailable true if there is an image for the place
+* @param imageID the id of the image for the place
+* @param owners the list of {@link UserBean} owners of the place
+* @param tags the list of tag names for the place
+*
+* @depends template=jive.socialgroups.soy.*
+* @depends path=/resources/scripts/apps/socialgroup/membership/views/membership_view.js
+* @depends path=/resources/scripts/apps/socialgroup/membership/models/membership_source.js
+* @depends path=/resources/scripts/apps/socialgroup/membership/main.js
+*/
+{template .privatePlace}
+
+    <head>
+        <title>{$place.placeTypeName}: {$place.name}</title>
+        <meta name="nav.active.link" content="jive-nav-link-place" />
+        <meta name="description" content="{$place.description}" />
+        {call jive.shared.soy.resourceInlineJs}
+            {param code}
+                var containerID = {$place.id};
+                {if $place.membershipSupported}
+                    var jiveMembership = new jive.MembershipApp.Main({lb}objectID:containerID{rb});
+                {/if}
+
+            {/param}
+        {/call}
+
+    </head>
+
+    <body class="j-body-place">
+
+        <header class="j-page-header clearfix">
+            <h1>
+                <span class="jive-icon-big {$place.iconCssClass}"></span>
+                <a href="{buildUrl($place.objectURL)}" class="font-color-normal">{$place.name}</a>
+                {if $place.archived}
+                    <span class="font-color-meta-light">[{i18nText('global.archived')}]</span>
+                {/if}
+            </h1>
+        </header>
+
+        <div class="j-box j-enhanced">
+            <div class="j-box-body j-box-body-padding clearfix">
+
+                <div class="jive-sgroup-image">
+                    {if $imageAvailable}
+                        <img src="{buildUrl('/groups/image/' + $place.id + '/2.png?a=' + $imageID)}" title="{i18nText('place.image')}" alt="{i18nText('place.image')}" border="0"/>
+                    {else}
+                        <img src="{buildUrl('/images/jive-sgroup-default-portrait-large.png')}" alt="{i18nText('sgroup.noImageSelected.text')}" border="0"/>
+                    {/if}
+                </div>
+
+                <div class="j-join-group-message">
+                    {if $place.membershipSupported}
+                        {if $invitationOnly and $requireApprovalToJoin}
+                            // "Secret" group view
+                            {if $inviteFromOwner or $systemAdmin}
+                                // If the owner has invited the person viewing this group, show a different message
+                                <h5>{i18nText('sgroup.admin' + $type + '.msg.head')}</h5>
+                                <p>{i18nText('sgroup.admin' + $type + '.msg')}</p>
+
+                                <div id="join.socialgroup.status" class="jive-sgroup-joinstatus">
+                                    <a id="jive-link-joinSocialGroup" href="#" class='j-social-button j-rc5 j-button-join j-ui-elem'><span class="j-ui-elem">{i18nText('sgroup.join')}</span></a>
+                                </div>
+
+                            {elseif $memberExists and $pendingApproval}
+                                // If a member has invited the person viewing, and their status is pending
+                                <p>{i18nText('sgroup.pending')}</p>
+
+                                <div id="join.socialgroup.status" class="jive-sgroup-joinstatus">
+                                    <a id="jive-link-leaveSocialGroup" href="#" class='j-social-button j-rc5 j-button-join j-ui-elem'><span class="j-ui-elem">{i18nText('sgroup.join.cancel')}</span></a>
+                                </div>
+
+                            {else}
+                                //If a member has invited the person viewing, but they have not requested to join yet
+                                <h5>{i18nText('sgroup.' + $type + '.msg.head')}</h5>
+                                <p>{i18nText('sgroup.' + $type + '.msg')}</p>
+
+                                <div id="join.socialgroup.status" class="jive-sgroup-joinstatus">
+                                    <a id="jive-link-joinSocialGroup" href="#" class='j-social-button j-rc5 j-button-join j-ui-elem'><span class="j-ui-elem">{i18nText('sgroup.askjoin')}</span></a>
+                                </div>
+                            {/if}
+
+                        {else}
+
+                            // "Private" group view
+                            {if $inviteFromOwner or $systemAdmin}
+                                <h5>{i18nText('sgroup.admin' + $type + '.msg.head')}</h5>
+                                <p>{i18nText('sgroup.admin' + $type + '.msg')}</p>
+
+                                <div id="join.socialgroup.status" class="jive-sgroup-joinstatus">
+                                    <a id="jive-link-joinSocialGroup" href="#" class='j-social-button j-rc5 j-button-join j-ui-elem j-join'><span class="j-ui-elem">{i18nText('sgroup.join')}</span></a>
+                                </div>
+
+                            {elseif $memberExists and $pendingApproval}
+                                // private group - pending approval
+                                <p>{i18nText('sgroup.' + $type + '.msg')}</p>
+                                <p>{i18nText('sgroup.pending')}</p>
+
+                                <div id="join.socialgroup.status" class="jive-sgroup-joinstatus">
+                                    <a id="jive-link-leaveSocialGroup" href="#" class='j-social-button j-rc5 j-button-join j-ui-elem'><span class="j-ui-elem">{i18nText('sgroup.join.cancel')}</span></a>
+                                </div>
+
+                            {else}
+                                // ask to join a private group
+                                <h5>{i18nText('sgroup.' + $type + '.msg.head')}</h5>
+                                <p>{i18nText('sgroup.' + $type + '.msg')}</p>
+                                {if not $anonymous}
+                                    <div id="join.socialgroup.status" class="jive-sgroup-joinstatus">
+                                        <a id="jive-link-joinSocialGroup" href="#" class='j-social-button j-rc5 j-button-join j-ui-elem j-ask-join'><span class="j-ui-elem">{i18nText('sgroup.askjoin')}</span></a>
+                                    </div>
+                                {/if}
+                            {/if}
+                        {/if}
+                    {/if}
+
+
+                    <div class="jive-sgroup-desc">
+                        <h5>{i18nText('sgroup.overview')}</h5>
+                        
+                        <p class="jive-sgroup-description-short">
+                            {$place.description}
+                        </p>
+
+                        <table class="jive-sgroup-quickstats">
+                            <tbody>
+                                <tr>
+                                    <td><strong>{i18nText('sgroup.overview.owner')}</strong></td>
+                                    <td>
+                                        {foreach $owner in $owners}
+                                            <span>{call jive.shared.displayutil.userDisplayNameLink data="$owner"/}</span>{if not isLast($owner)}, {/if}
+                                        {/foreach}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>{i18nText('sgroup.overview.tags')}</strong></td>
+                                    <td>
+                                        {foreach $tag in $tags}
+                                            <a href="{buildUrl('/tags#/?tags=' + $tag + '&taggableTypes=' + $place.type)|noAutoescape}">{$tag}</a>{if not isLast($tag)}, {/if}
+                                        {/foreach}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>{i18nText('sgroup.overview.createdate')}</strong></td>
+                                    <td>{formatDate($creationDateString)}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>{i18nText('sgroup.overview.grouptype')}</strong></td>
+                                    <td>
+                                        <span>{i18nText('sgroup.form.type.' + $type + '.label')} <img class="jive-icon-med jive-icon-help" id="tags-tooltip" title="{i18nText('sgroup.form.type.' + $type + '.text')}" alt="" src="{buildUrl('/images/transparent.png')}"/></span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </body>
+
+{/template}
+
+/**
+* Renders the places section for a "place".
+*
+* @param place the {@link Place} that we are displaying.
+* @param browseViewID A unique name for this browse view.
+* @param archetypeID The ID of the archetype associated with this browse view.
+* @param itemsView A collection of {@link ContentObjectViewBean}s.
+* @param filterGroup A {@link FilterGroupBean} object with nested filters.
+* @param guest Whether or not the current user is the guest user
+* @param targetUserID The userID of the items being displayed.
+* @param urlParams map of query parameters for the last request
+* @param urlPath path for the last request
+* @param parentID The parent container id.
+* @param? layoutClass An optional class passed to the layout div element
+* @depends path=/resources/scripts/apps/browse/container/model/container_source.js
+* @depends path=/resources/scripts/apps/filters/main.js
+* @depends path=/resources/scripts/apps/filters/hierarchical_content.js
+* @depends path=/resources/scripts/apps/filters/hierarchical_content.js
+* @depends path=/resources/scripts/apps/browse/activity/info/main.js
+* @depends path=/resources/scripts/apps/socialgroup/membership/main.js
+* @depends path=/resources/scripts/apps/socialgroup/membership/views/membership_view.js
+* @depends path=/resources/scripts/apps/socialgroup/membership/models/membership_source.js
+* @depends template=jive.browse.container.*
+* @depends template=jive.place.noPlaces
+* @depends i18nKeys=sgroup.form.type.*
+*/
+{template .places}
+
+    <head>
+        {call .head data="all" /}
+
+        {call jive.shared.soy.resourceInlineJs}
+            {param code}
+            $j(document).ready(
+                function() {lb}
+                    var contentSource = new jive.Browse.Container.ItemSource();
+                    var filterApp = new (jive.oo.compose(
+                        jive.Filters.Main,
+                        jive.Filters.HierarchicalContent
+                    ))({lb}
+                        itemSource: contentSource,
+                        userPrefSource: new jive.Browse.User.ItemSource(),
+                        guest: {$guest},
+                        targetUserID: '{$targetUserID}',
+                        extraParams: {lb}containerType: containerType, containerID: containerID{rb},
+                        browseViewID: '{$browseViewID |escapeJs}',
+                        archetypeID: '{$archetypeID |escapeJs}',
+                        filterGroup: {buildJson($filterGroup) |noAutoescape},
+                        itemViewID: '{$itemsView.itemViewID |escapeJs}',
+                        pageSize: {$itemsView.pageSize |escapeJs},
+                        token: '{$itemsView.token}',
+                        noResults: function() {lb}
+                            return jive.place.noPlaces({lb} i18nKeyPrefix: '{$place.placeI18nKeyPrefix |escapeJs}' {rb});
+                        {rb}
+                    {rb});
+                {rb});
+                var jiveFollow = new jive.FollowApp.Main({lb}
+                    i18n:null
+                {rb});
+                var jiveMembership = new jive.MembershipApp.Main({lb}{rb});
+            {/param}
+        {/call}
+
+    </head>
+
+    <body class="j-body-place">
+
+        {call .header data="all" /}
+
+        <!-- BEGIN layout -->
+        <div class="j-layout j-layout-l j-contained j-contained-tabs  {if $layoutClass}{$layoutClass}{/if} j-rc4 j-rc-none-top clearfix">
+
+            <!-- BEGIN large column -->
+            <div class="j-column-wrap-l">
+                <div class="j-column j-column-l">
+
+                    <!-- BEGIN browse & filter block -->
+                    {call jive.browse.filter.filters data="$filterGroup"}
+                        {param itemsView: $itemsView /}
+                        {param urlParams: $urlParams /}
+                        {param urlPath: $urlPath /}
+                    {/call}
+
+                    <div id="parent-space-message" class="j-browse-places-parentmessage clearfix j-rc4" {if $parentID == 0 or $itemsView.itemViewID == 'hierarchy'}style="display: none;"{/if}>
+                        {call jive.places.parentChain data="$itemsView"}
+                            {param startID: $place.id/}
+                            {param startType: $place.type/}
+                        {/call}
+                    </div>
+
+                    <div id="j-browse-item-grid" class="j-box-body" role="main" aria-label="{i18nText('browse.filter.grid')}">
+                        {call jive.browse.grid.itemGrid data="$itemsView"}
+                            {param browseViewID: $browseViewID/}
+                            {param archetypeID: $archetypeID/}
+                            {param noResults}
+                                {call .noPlaces}
+                                    {param i18nKeyPrefix: $place.placeI18nKeyPrefix /}
+                                    {param unfiltered: true /}
+                                {/call}
+                            {/param}
+                        {/call}
+                    </div>
+
+                    {call jive.browse.grid.moreSearchResultsAvailableHolder data="$itemsView"/}
+
+                    <div class="j-browse-filter-row j-bottom-row j-rc4">
+                        {call jive.shared.soy.paginationLinks}
+                            {param current: $itemsView.pageNumber /}
+                            {param max: $itemsView.pageNumber + ($itemsView.hasNext ? 1 : 0) /}
+                            {param pageSize: $itemsView.pageSize /}
+                            {param urlParams: $urlParams /}
+                            {param urlPath: $urlPath /}
+                        {/call}
+                    </div>
+                    <!-- END browse & filter block -->
+                </div>
+            </div>
+            <!-- END large column -->
+
+        </div>
+        <!-- END layout -->
+
+    </body>
+{/template}
+
+/**
+ * Message to display if there are no places.
+ *
+ * @param i18nKeyPrefix
+ * @param? unfiltered if true, indicates that there is no content even
+ * before filters are applied
+ *
+ * @depends i18nKeys=place.place.filtered.none.* scope=client
+ */
+{template .noPlaces}
+    <div class="j-browse-info j-browse-empty j-empty font-color-meta">
+        {if $unfiltered}
+            {i18nText('place.place.none.' + $i18nKeyPrefix)}
+        {else}
+            {i18nText('place.place.filtered.none.' + $i18nKeyPrefix)}
+        {/if}
+    </div>
+{/template}
+
+/**
+* A "how to customize with widgets" message box.
+*/
+{template .editPageMessage}
+    <div class="customize-message clearfix" id="customize-message" style="display: none">
+        <a href="#" id="dismiss-link" style="float: right">{i18nText('place.dismiss.link')}</a>
+
+        <h1>{i18nText('place.editpage')}</h1>
+        <p class="welcome-message">
+            {i18nText('place.editinfo')}
+        </p>
+
+        <div style="float:right"><input type="checkbox" id="dont-display-message"><label for="dont-display-message">{i18nText('place.dontshowmsg')}</label></div>
+
+    </div>
+{/template}
+
+/**
+ * Renders a link to clear any selected category filters from browse
+ * views.
+ *
+ * @param appliedFilterIDs ids of currently selected filters
+ * @param children category filters to display
+ * @param? childIndex index in children for this recursive call
+ */
+{template .clearCategoriesLink}
+    {if typeof($childIndex) != 'number'}
+        {call .clearCategoriesLink data="all"}
+            {param childIndex: 0 /}
+        {/call}
+
+    {elseif $childIndex < length($children)}
+        {if $children[$childIndex].nested and
+            indexOf($appliedFilterIDs, $children[$childIndex].id) > -1}
+            {call .clearCategoriesLinkHtml data="all" /}
+        {else}
+            {call .clearCategoriesLink data="all"}
+                {param childIndex: $childIndex + 1 /}
+            {/call}
+        {/if}
+
+    {else}
+        {call .clearCategoriesLinkHtml data="all"}
+            {param hidden: true /}
+        {/call}
+    {/if}
+{/template}
+
+/**
+ * Renders the actual link that clears selected categories.
+ *
+ * @param urlPath path for the last request
+ * @param? hidden will be hidden if true
+ */
+{template .clearCategoriesLinkHtml}
+    <span class="js-clear-nav j-second-nav-clear font-color-meta"{if $hidden} style="display:none"{/if}>
+        {sp}-{sp}
+        /* intentionally ignores $urlParams */
+        <a class="js-clear-filters" href="{buildUrl($urlPath)}">
+            {i18nText('browse.filter.clear_selected')}
+        </a>
+    </span>
+{/template}

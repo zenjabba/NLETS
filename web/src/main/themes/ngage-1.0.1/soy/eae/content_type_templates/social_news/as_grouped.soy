@@ -1,0 +1,76 @@
+{namespace jive.eae.activitystream.item.grouped autoescape="contextual"}
+
+/**
+ * @param activityContainer - The activity container
+ * @param user - the user viewing this activity entry
+ * @param streamType
+ * @param canCreateMbImage
+ * @param canCreateMbVideo
+ * @param? sidebar
+ */
+{template .socialNews}
+    {call .articleStart data="all"}
+        {param customId}
+			{$streamType}_{$activityContainer.jiveObject.objectType}_{$activityContainer.jiveObject.id}{if $streamType=='context'}_{$activityContainer.jiveObject.domIDPostfix}{/if}{if $sidebar}_{$sidebar}{/if}
+        {/param}
+        /*{param extraClasses: 'j-act-grouped j-act-social-news' /}*/
+		{param extraClasses}j-act-grouped j-act-social-news{if $sidebar} {$sidebar}{/if}{/param}
+    {/call}
+        {call .activityContentStart /}
+            <div class="j-act-title" role="heading" id="act-title-{$activityContainer.jiveObject.domIDPostfix}{if $sidebar}_{$sidebar}{/if}">
+                <span class="jive-icon-med jive-icon-social-news acticon"></span>
+                {i18nText('eae.socialnews.group.header')}
+            </div>
+
+            <div class="{if length($activityContainer.activityList) > 5}j-act-coll-view{/if} collapsed clearfix">
+                <ul class="j-act-g-list">
+                    {foreach $activity in $activityContainer.activityList}
+                        {if $activity and not $activity.content.deleted}
+                            
+                            /* HEDLOC Start */
+                            {if $activity.content.activityTemplate != 'jive.eae.digest.subItem.mobile'}
+                                {if index($activity) < 5}
+                                    <li class="j-act-g-item" data-timestamp="{$activity.groupedOldestTimestamp}">
+                                        {call jive.eae.common.digestSubItem}
+                                            {param activityContainer: $activityContainer /}
+                                            {param activity: $activity /}
+                                            {param user: $user /}
+                                            {param canCreateMbImage: $canCreateMbImage /}
+                                            {param canCreateMbVideo: $canCreateMbVideo /}
+                                            {param fromTemplate: 'grouped_social_news' /}
+                                        {/call}
+                                    </li>
+                                {else}
+                                    <li class="j-act-g-item" style="display:none;" data-timestamp="{$activity.groupedOldestTimestamp}">
+                                        {call jive.eae.common.digestSubItem}
+                                            {param activityContainer: $activityContainer /}
+                                            {param activity: $activity/}
+                                            {param user: $user /}
+                                            {param streamType: $streamType /}
+                                            {param canCreateMbImage: $canCreateMbImage /}
+                                            {param canCreateMbVideo: $canCreateMbVideo /}
+                                            {param fromTemplate: 'grouped_social_news' /}
+                                        {/call}
+                                    </li>
+                                {/if}
+                            {/if}
+                            /* HEDLOC End */
+                            
+                        {/if}
+                    {/foreach}
+                </ul>
+
+                <div class="j-preview-trigger j-expand-comments">
+                    <a href="#" class="j-show-more j-js-show-all">
+                        <span class="jive-icon-med jive-icon-arrow-down vmicon"></span>
+                        <span class="jive-icon-med jive-icon-arrow-down-focus vmicon"></span>
+                        <strong class="lnk font-color-meta">
+                            {i18nText('eae.menu.show.more')}
+                        </strong>
+                    </a>
+                </div>
+            </div>
+        {call .activityContentEnd /}
+        {call .divider data="all" /}
+    {call .articleEnd /}
+{/template}

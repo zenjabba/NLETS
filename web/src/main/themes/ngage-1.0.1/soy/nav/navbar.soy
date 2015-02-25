@@ -1,0 +1,241 @@
+{namespace jive.nav autoescape="contextual"}
+
+/**
+* Renders the main nav bar for the application.
+* @see com.jivesoftware.community.navbar.rest.NavBarView
+*
+* @param user The authenticated user.
+* @param links A list of global nav links {@see com.jivesoftware.community.navbar.NavBarLink}.
+* @param bookmarksLink A link to the bookmarks dropdown.
+* @param historyLink A link to the bookmarks dropdown.
+* @param homeLink The link to the user's home page
+* @param logoutLink
+* @param mode custom|standard
+* @param? selectedLinkID The ID of the selected link.
+* @param? showSatelliteMenu Whether or not to show the satellite navigation (display name, prefs, logout link)
+* @param? hideSatelliteDisplayName
+* @param? collapseCreateMenu
+* @param? showSearch Whether or not to show the search box.
+* @param? spotlightSearchEnabled Whether or not spotlight search functionality is enabled.
+* @param? createMenuShown Whether or not to show the create menu.
+* @param? appsMenuShown Whether or not to show the apps menu.
+* @param? container The current container the user is in (only if not in root container)
+* @param rootCommunityName name of the root community
+*
+* @depends i18nKeys=nav.bar.*
+* @depends template=jive.nav.menu.create.*
+* @depends template=jive.nav.menu.generic
+* @depends path=/resources/scripts/apps/navbar/menu/apps/instances/main.js
+* @depends path=/resources/scripts/apps/navbar/menu/home/navbar_menu_home_main.js
+*/
+{template .navbar}
+    /* Satellite nav, standard mode */
+    {if $mode == 'standard'}
+	
+        <ul id="j-satNav-wrap">
+			 <li>
+				<a class='j-feedbackNavLink' href='/community/nlets-training/nlets-feedback'>
+					<span class='feedback_icon'></span>
+					<span class='feeback_name'>Feedback</span>
+				</a>
+			</li> 
+            <li>
+                {call .satelliteNav data="all"}
+                    {param avatarOnly:$hideSatelliteDisplayName /}
+                {/call}
+            </li>
+			
+            {if $logoutLink.visible}
+                {call .logoutLink /}
+            {/if}
+        </ul>
+    {/if}
+
+
+    <div id="j-globalNav-bg">
+        <ul id="j-globalNav" role="menubar" class="j-globalNav">
+            {foreach $link in $links}
+                {if $link.visible}
+                    {if $link.id == 'jive-nav-link-home'}
+                        {call jive.nav.globalLink data="$link"}
+                            {param url: '/'/}
+                            {param selectedLinkID : $selectedLinkID/}
+                            {param showChildren : true/}
+                            {param itemCss}{''}{/param}
+                        {/call}
+                    {else}
+                        {call jive.nav.globalLink data="$link"}
+                            {param selectedLinkID : $selectedLinkID/}
+                            {param showChildren : true/}
+                            {param itemCss}{''}{/param}
+                        {/call}
+                    {/if}
+                {/if}
+            {/foreach}
+			<!-- HEDLOC Custom Navbar Buttons -->
+			<li id="jive-nav-link-profile" class="j-ui-elem">
+				<a class="j-globalNavLink j-ui-elem " href="/people/{$user.username}">
+					<span class="nav-link ">My Profile</span>
+				</a>
+			</li>
+			<li id="jive-nav-link-connections" class="j-ui-elem {if $selectedLinkID == 'jive-nav-link-conx'}active{/if}">
+				<a class="j-globalNavLink j-ui-elem " href="/people?sortKey=all~dateJoinedDesc&sortOrder=0">
+					<span class="nav-link ">Find Connections</span>
+				</a>
+			</li>
+			<li id="jive-nav-link-groups" class="j-ui-elem {if $selectedLinkID == 'jive-nav-link-places'}active{/if}">
+				<a class="j-globalNavLink j-ui-elem " href="/places?filterID=all~objecttype~objecttype%5Bsocialgroup%5D">
+					<span class="nav-link ">Groups</span>
+				</a>
+			</li>
+            {if $homeLink.renderIndicator}
+                {call jive.shared.soy.resourceInlineJs}
+                    {param code}
+                        $j(function(){lb}
+                            jive.Navbar.Menu.Home.GlobalController = new jive.Navbar.Menu.Home.Main('#{$homeLink.id}');
+                        {rb});
+                    {/param}
+                {/call}
+            {/if}
+            {if $appsMenuShown}
+                <li class="j-nav-create j-nav-apps" role="menuitem">
+                    <a href="#" id="appsQuickLaunchLink" class="j-globalNavLink j-ui-elem">
+                        <span class="nav-link j-ui-elem">{i18nText('nav.bar.apps.link')}<span class="j-ui-elem j-nav-more"></span></span>
+                    </a>
+                    <div id="appQuickLaunchMenu" class="j-quick-menu" style="display: none;"></div>
+                </li>
+                {call jive.shared.soy.resourceInlineJs}{param code}
+                    {literal}
+                        $j(function() {
+                            new jive.Navbar.Menu.Apps.Instances.Main('#appsQuickLaunchLink', '#appQuickLaunchMenu');
+                        });
+                    {/literal}
+                {/param}{/call}
+            {/if}
+            <!-- This is the create menu item-->
+            {if $mode == 'standard' and $createMenuShown}
+                <li class="j-nav-create j-nav-cmenu" role="menuitem">
+                    {call .createMenu}
+                        {param collapsed:false /}
+                    {/call}
+                </li>
+            {/if}
+        </ul>
+
+        <div id="j-links">
+            <ul class="j-globalNav">
+                /* Satellite nav, custom mode */
+                {if $mode == 'custom'}
+                    <li class="j-nav-create j-nav-user" role="menuitem">
+                        {call .satelliteNav data="all"}
+                            {param avatarOnly:$hideSatelliteDisplayName /}
+                        {/call}
+                    </li>
+
+                    /* Create nav, custom mode */
+                    {if $createMenuShown}
+                        <li class="j-nav-create" role="menuitem">
+                            {call .createMenu}
+                                {param collapsed:$collapseCreateMenu /}
+                            {/call}
+                        </li>
+                    {/if}
+
+                    {if $logoutLink.visible}
+                        {call .logoutLink /}
+                    {/if}
+                {/if}
+
+            </ul>
+            /* Spotlight Search */
+            {if ($showSearch)}
+                <div id="j-spotlight-search" role="search">
+                    {call .searchForm}
+                        {param container: $container /}
+                        {param spotlightSearchEnabled: $spotlightSearchEnabled /}
+                        {param spotlightSearchDefaultEnabled: $user.prop.search.defaultEnabled /}
+                        {param bookmarksVisible : $bookmarksLink.visible/}
+                        {param historyVisible : $historyLink.visible/}
+                        {param communityName: $rootCommunityName/}
+                        {param fieldId: 'autosearch' /}
+                        {param anchorId: 'searchpopupanchor' /}
+                    {/call}
+                </div>
+            {/if}
+
+
+            {if $homeLink.visible and not $homeLink.renderIndicator}
+                {call jive.shared.soy.resourceInlineJs}{param code}
+                    $j(function(){lb}
+                        jive.Navbar.Menu.Home.GlobalController = new jive.Navbar.Menu.Home.Main('#j-satNav-indicator');
+                    {rb});
+                {/param}{/call}
+            {/if}
+        </div>
+    </div>
+
+{/template}
+
+
+/**
+ * @param collapsed
+ */
+{template .createMenu}
+    <a href="#" id="navCreate" class="j-globalNavLink j-ui-elem">
+        <span class="nav-link j-ui-elem">
+            <span class="j-ui-elem j-create-icon"></span>
+            {if not $collapsed}{/if}<span class="j-navLabel">{i18nText('nav.bar.create.link')}</span><span class="j-ui-elem j-nav-more"></span>
+        </span>
+    </a>
+
+    <div id="menuCreate" class="j-quick-menu" style="display: none;"></div>
+
+    {call jive.shared.soy.resourceInlineJs}{param code}
+        $j(function(){lb}
+            new jive.Navbar.Menu.Create.Main('#navCreate', '#menuCreate');
+        {rb});
+    {/param}{/call}
+{/template}
+
+
+/**
+* Renders the search form for the navbar.
+*
+* @param? containerType
+* @param? containerId
+* @param? containerName
+* @param? containerBrowseId
+* @param spotlightSearchEnabled Whether or not spotlight search functionality is enabled.
+* @param? spotlightSearchDefaultEnabled Whether or not spotlight search functionality is enabled.
+* @param showSearchButton
+* @param bookmarksVisible
+* @param historyVisible
+* @param communityName
+* @param fieldId
+* @param anchorId
+* @param? noAnchor
+*
+* @depends path=/resources/scripts/apps/autosearch/autosearch.js
+*/
+{template .searchForm}
+    <span {if not $noAnchor}id="{$anchorId}" {/if}class="j-ui-elem j-search-left"></span>
+    <input data-spotlight-enabled="{$spotlightSearchEnabled}" id="{$fieldId}" class="j-ui-elem" data-component="autosearch" data-popup-anchor="{$anchorId}" placeholder="{i18nText('global.search')}" type="text"
+    data-hidetypes="{if not $bookmarksVisible or not $spotlightSearchDefaultEnabled}bookmarks{/if}{sp}{if not $historyVisible or not $spotlightSearchDefaultEnabled}frequent recent{/if}{sp}{if $containerType and $containerId and $containerName and $containerBrowseId}all{/if}"
+    data-community-name="{$communityName}"
+    {if $containerType and $containerId and $containerName and $containerBrowseId}data-container="{$containerType}:{$containerId}" data-container-name="{$containerName}" data-container-browseid="{$containerBrowseId}"{/if}
+    />
+    <span class="j-ui-elem j-search-right"></span>
+    <span class="jive-icon-sml jive-glyph-delete" data-component="button" data-type="clear" data-field="{$fieldId}"></span>
+    {if $showSearchButton}
+        <button data-component="button" data-type="search" data-field="{$fieldId}">{i18nText('global.search')}</button>
+    {/if}
+{/template}
+
+
+/**
+ */
+{template .logoutLink private="true"}
+    <li class="j-ui-elem">
+        <a href="{buildUrl('/logout.jspa')}" class="j-globalNavLink j-ui-elem">{i18nText('global.logout')}</a>
+    </li>
+{/template}

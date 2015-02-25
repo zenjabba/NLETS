@@ -1,0 +1,30 @@
+{namespace jive.nav autoescape="contextual"}
+
+
+/**
+ * @param companyName
+ * @param headerLogoAltText
+ * @param headerLogoPath
+ * @param headerTitle
+ * @param logoType
+ */
+{template .logo}
+    {if $logoType == 'text' and $headerTitle}
+        <h1 id="jive-global-header-title">
+			<span  class="j-header-logo"><a href="{buildUrl('/activity')}" class="j-header-company-logo"></a></span>
+		
+			
+		</h1>
+    {elseif $logoType == 'image' and $headerLogoPath}
+        <a href="{buildUrl('/')}" class="j-header-logo">
+            <img src="{buildUrl($headerLogoPath)}"{if $headerLogoAltText} alt="{$headerLogoAltText}"{/if} />
+        </a>
+    {else}
+        <h1 id="logo"{if $companyName} class="clearfix"{/if}>
+            <a href="{buildUrl('/')}" class="j-header-logo{if $companyName} j-header-logo-companyname{/if}">{i18nText('global.logoText')}</a>
+            {if $companyName}
+                <span class="j-header-forCompanyName font-color-white">{i18nText('global.for')} {$companyName}</span>
+            {/if}
+        </h1>
+    {/if}
+{/template}

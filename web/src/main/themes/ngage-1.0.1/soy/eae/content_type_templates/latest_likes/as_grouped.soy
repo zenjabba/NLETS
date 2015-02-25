@@ -1,0 +1,64 @@
+{namespace jive.eae.activitystream.item.grouped autoescape="contextual"}
+
+/**
+ * Render a grouped set of activity from the activity stream
+ * @param activityContainer - the activity container for the microblog activities
+ * @param user - the user viewing this activity entry
+ * @param canCreateMbImage
+ * @param canCreateMbVideo
+ * @param? streamType
+ * @param? sidebar
+ */
+{template .latestLikes}
+    {call .articleStart data="all"}
+        {param customId}
+			{$streamType}_{$activityContainer.jiveObject.objectType}_{$activityContainer.jiveObject.id}{if $streamType=='context'}_{$activityContainer.jiveObject.domIDPostfix}{/if}{if $sidebar}_{$sidebar}{/if}
+        {/param}
+		/*{param extraClasses: 'j-act-grouped j-act-social-news' /}*/
+        {param extraClasses}j-act-grouped j-act-like{if $sidebar} {$sidebar}{/if}{/param}
+    {/call}
+        {call .activityContentStart /}
+            <div class="j-act-title" role="heading" id="act-title-{$activityContainer.jiveObject.domIDPostfix}{if $sidebar}_{$sidebar}{/if}">
+                <span  title='{i18nText('global.like')}' role='img' class="jive-icon-med jive-icon-like acticon"></span>
+                {i18nText('eae.liking.group.header')}
+            </div>
+            <div class="{if length($activityContainer.activityList) > 5}j-act-coll-view{/if} collapsed clearfix">
+                <ul class="j-act-g-list">
+                    {foreach $activity in $activityContainer.activityList}
+                        {if $activity and index($activity) < 5}
+                            <li class="j-act-g-item" data-timestamp="{$activity.groupedOldestTimestamp}">
+                                {call jive.eae.common.digestSubItem}
+                                    {param activity: $activity /}
+                                    {param user: $user /}
+                                    {param canCreateMbImage: $canCreateMbImage /}
+                                    {param canCreateMbVideo: $canCreateMbVideo /}
+                                    {param fromTemplate: 'latest_likes' /}
+                                {/call}
+                            </li>
+                        {elseif $activity}
+                            <li class="j-act-g-item" style="display:none;" data-timestamp="{$activity.groupedOldestTimestamp}">
+                                {call jive.eae.common.digestSubItem}
+                                    {param activity: $activity/}
+                                    {param user: $user /}
+                                    {param canCreateMbImage: $canCreateMbImage /}
+                                    {param canCreateMbVideo: $canCreateMbVideo /}
+                                    {param fromTemplate: 'latest_likes' /}
+                                {/call}
+                            </li>
+                        {/if}
+                    {/foreach}
+                </ul>
+                <div class="j-preview-trigger j-expand-comments">
+                    <a href="#" class="j-show-more j-js-show-all">
+                        <span class="jive-icon-med jive-icon-arrow-down vmicon"></span>
+                        <span class="jive-icon-med jive-icon-arrow-down-focus vmicon"></span>
+                        <strong class="lnk font-color-meta">
+                            {i18nText('eae.menu.show.more')}
+                        </strong>
+                    </a>
+                </div>
+            </div>
+        {call .activityContentEnd /}
+        {call .divider data="all" /}
+    {call .articleEnd /}
+{/template}

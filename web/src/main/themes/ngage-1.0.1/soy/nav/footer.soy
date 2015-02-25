@@ -1,0 +1,43 @@
+{namespace jive.nav autoescape="contextual"}
+
+/**
+ * Renders the footer nav bar for the application.
+ *
+ * @param licenseVersion the version of the product from the license.
+ * @param revision the SVN revision
+ * @param aboutJiveLink
+ * @param howToBuyLink
+ * @param securityAndScalingLink
+ * @param supportCommunityLink
+ * @param documentationLink
+ * @param trialActive
+ */
+{template .footer}
+	<div id="j-footer-poweredBy">
+	<span id="j-footer-cb"></span>
+	<p class="font-color-meta" style="font-size: 14px;">A Collaborative Justice Sharing Platform</p>
+	</div>
+	
+    <div id="j-footer-poweredBy" style="display:none">
+        <p class="font-color-meta">Copyright &copy; 2014 NLETS.&nbsp;&nbsp;All rights reserved.</p>
+    </div>
+    <div class="j-footer-nav">
+        <a class="font-color-meta" href="{buildUrl('/')}">{i18nText('global.home')}</a> | <a class="font-color-meta" href="#top">{i18nText('dectr.page.top.link')}</a> | <a class="font-color-meta do-not-display" href="{$aboutJiveLink}">{i18nText('footer.about.jive')}</a> {if $trialActive} | <a class="font-color-meta do-not-display" href="{$howToBuyLink}">{i18nText('footer.how.to.buy')}</a> | <a class="font-color-meta" do-not-displayhref="{$securityAndScalingLink}">{i18nText('footer.security.and.scaling')}</a> | <a class="font-color-meta do-not-display" href="{$supportCommunityLink}">{i18nText('footer.jive.community')}</a> {/if} <a class="font-color-meta" href="mailto:support@nlets.org">{i18nText('footer.help')}</a>
+
+<!-- href="{$documentationLink}">{i18nText('footer.help')}</a>
+-->
+
+    </div>
+    <div class="j-footer-jiveVersion">
+        {i18nText('dectr.jiveVersion.link', $licenseVersion, $revision)}
+    </div>
+    <span id='speakSpan' class='j-508-label' role='marquee' aria-live='assertive' aria-relevant='all'></span>
+{/template}
+
+
+/**
+ * @param html
+ */
+{template .customFooter}
+    <footer id="j-cust-foot" class="clearfix" role="contentinfo">{$html|noAutoescape}</footer>
+{/template}

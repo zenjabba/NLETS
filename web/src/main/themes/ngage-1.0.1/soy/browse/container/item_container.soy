@@ -1,0 +1,764 @@
+{namespace jive.browse.container}
+
+
+/**
+* Renders a single thumbnail item from a {@link BrowseViewItemBean} instance.
+*
+* @depends template=jive.eae.acclaim.count
+*
+* @param subject The item subject.
+* @param link A relative link to the item.
+* @param iconCss An icon representing the item.
+* @param id The place ID.
+* @param type The place type.
+* @param prop Properties of the container
+*/
+{template .thumbnailSpaceItem}
+    <div class="card">
+        <div class="j-thumb j-place-thumb j-space-thumb j-rc4 js-browse-item face card-front {call .flippable data="$prop"}{param body: 'flippable'/}{/call}" data-object-type="{$type}" data-object-id="{$id}">
+            <header class="js-thumb-header">
+                <h4>
+                    <a class="j-place-name" href="{buildUrl($link)}" title="{$subject}">
+                        <span class="{$iconCss} jive-icon-big" role="img" title="{(i18nText('global.access.content.type.' + $type))}"></span>
+                        <span class="js-header-text">{$subject}</span>
+                    </a>
+                </h4>
+            </header>
+
+            <section>
+                <a href="{buildUrl($link)}" class="j-place-photo j-space-photo">
+                    {if $prop.placeImage and $prop.placeImage.urlMedium}
+                        <img src="{buildUrl($prop.placeImage.urlMedium)}" alt="{i18nText('cmnty.form.image')}" width="200"/>
+                    {/if}
+                </a>
+
+                 <div class="j-place-info clearfix">
+                    <div>
+                        <span class="font-color-meta-light">
+                            {i18nText('browse.info.followers.plural')}
+                        </span>
+                        <br/>
+
+                        {call jive.eae.acclaim.count}
+                            {param command:'showFollowers' /}
+                            {param count}{if ($prop.followInfo and $prop.followInfo.numFollowers)}{$prop.followInfo.numFollowers}{else}0{/if}{/param}
+                            {param objectId:$id /}
+                            {param objectType:$type /}
+                            {param accessibilityLinkLabel}
+                                {call jive.shared.soy.getCountTextByType}
+                                    {param count}{if ($prop.followInfo and $prop.followInfo.numFollowers)}{$prop.followInfo.numFollowers}{else}0{/if}{/param}
+                                    {param type:'showfollowcount'/}
+                                {/call}
+                            {/param}
+                        {/call}
+                    </div>
+
+
+                    {if $prop.childInfo and $prop.childInfo.hasChildren}
+                    <div>
+                        <span class="font-color-meta-light">
+                            {i18nText('browse.info.subspaces.plural')}
+                        </span>
+                        <br/>
+
+                        {call jive.eae.acclaim.countLabel}
+                            {param command:'showChildren' /}
+                            {param objectId:$id /}
+                            {param objectType:$type /}
+                            {param accessibilityLinkLabel}
+                                {call jive.shared.soy.getCountTextByType}
+                                    {param count}{if ($prop.childInfo and $prop.childInfo.numChildren)}{$prop.childInfo.numChildren}{else}0{/if}{/param}
+                                    {param type:'showsubspacecount'/}
+                                {/call}
+                            {/param}
+                        {/call}
+                        <a href="#" class="j-sub-spaces j-view-children" data-activity-type="children" data-objecttype="{$type}" data-objectid="{$id}"
+                            {call jive.eae.acclaim.labelledBy}
+                                {param command:'showChildren' /}
+                                {param count:$prop.childInfo.numChildren /}
+                                {param objectId:$id /}
+                                {param objectType:$type /}
+                                {param accessibilityLinkLabel}
+                                    {call jive.shared.soy.getCountTextByType}
+                                        {param count}{if ($prop.childInfo and $prop.childInfo.numChildren)}{$prop.childInfo.numChildren}{else}0{/if}{/param}
+                                        {param type:'showsubspacecount'/}
+                                    {/call}
+                                {/param}
+                                {param text : $prop.childInfo.numChildren /}
+                            {/call}
+                        </a>
+                    </div>
+                    {/if}
+
+                </div>
+
+                {if $prop.descSnippet}
+                <article class="font-color-meta">
+                    <span>
+                        {$prop.descSnippet}
+                    </span>
+                </article>
+                {/if}
+            </section>
+
+
+
+            {call .flipperControl data="$prop"/}
+        </div>
+        {call .cardBack data="all"/}
+    </div>
+{/template}
+
+/**
+* Renders a single thumbnail item from a {@link BrowseViewItemBean} instance.
+*
+*
+* @param subject The item subject.
+* @param link A relative link to the item.
+* @param iconCss An icon representing the item.
+* @param id The place ID.
+* @param type The place type.
+* @param prop Properties of the container
+* @depends template=jive.eae.acclaim.count
+* @depends i18nKeys=sgroup.secret
+* @depends i18nKeys=sgroup.private
+* @depends i18nKeys=sgroup.member_only
+* @depends i18nKeys=sgroup.open
+* @depends i18nKeys=browse.info.sgroup.*
+*/
+{template .thumbnailSocialGroupItem}
+    <div class="card">
+        <div class="j-thumb j-place-thumb j-group-thumb j-rc4 js-browse-item face card-front {call .flippable data="$prop"}{param body: 'flippable'/}{/call}" data-object-type="{$type}" data-object-id="{$id}">
+            <header class="js-thumb-header">
+                <h4>
+                    <a class="j-place-name" href="{buildUrl($link)}" title="{$subject}">
+                        <span class="{$iconCss} jive-icon-big" role="img" title="{i18nText(('global.access.content.type.' + $type))}"></span>
+                        <span class="js-header-text">{$subject}</span>
+                    </a>
+                </h4>
+            </header>
+
+            <section>
+                <a href="{buildUrl($link)}" class="j-place-photo j-space-photo">
+                    {if $prop.placeImage and $prop.placeImage.urlMedium}
+                        <img src="{buildUrl($prop.placeImage.urlMedium)}" alt="{i18nText('sgroup.image')}" width="200"/>
+                    {/if}
+                </a>
+
+                <div class="j-place-info clearfix">
+                {if $prop.followInfo or $prop.socialGroupInfo}
+
+                    {if $prop.followInfo}
+                        <div>
+                            <span class="font-color-meta-light">
+                                {i18nText('browse.info.followers.plural')}
+                            </span>
+                            <br/>
+
+                            {call jive.eae.acclaim.count}
+                                {param command:'showFollowers' /}
+                                {param count}{if ($prop.followInfo.numFollowers)}{$prop.followInfo.numFollowers}{else}0{/if}{/param}
+                                {param objectId:$id /}
+                                {param objectType:$type /}
+                                {param accessibilityLinkLabel}
+                                    {call jive.shared.soy.getCountTextByType}
+                                        {param count}{if ($prop.followInfo and $prop.followInfo.numFollowers)}{$prop.followInfo.numFollowers}{else}0{/if}{/param}
+                                        {param type:'showfollowcount'/}
+                                    {/call}
+                                {/param}
+                            {/call}
+                        </div>
+                    {/if}
+
+
+                    {if $prop.socialGroupInfo}
+                        <div>
+                            <span class="font-color-meta-light">
+                                {i18nText('browse.info.members.plural')}
+                            </span>
+                            <br/>
+
+                            {call jive.eae.acclaim.count}
+                                {param command:'showMembers' /}
+                                {param count}{if $prop.socialGroupInfo}{$prop.socialGroupInfo.numMembers}{else}0{/if}{/param}
+                                {param objectId:$id /}
+                                {param objectType:$type /}
+                                {param accessibilityLinkLabel}
+                                    {call jive.shared.soy.getCountTextByType}
+                                        {param count}{if $prop.socialGroupInfo}{$prop.socialGroupInfo.numMembers}{else}0{/if}{/param}
+                                        {param type:'showmembercount'/}
+                                    {/call}
+                                {/param}
+                            {/call}
+                        </div>
+                    {/if}
+
+                    {if $prop.socialGroupInfo}
+                    <div class="{if $prop.isVisibleToPartner}j-browse-external-access{/if}">
+                        <span class="font-color-meta-light">
+                            {i18nText('sgroup.form.type.label')}
+                        </span>
+                        <br/>
+                        <span class="">
+                        <span class="jive-icon-sml jive-icon-group-{$prop.socialGroupInfo.typeName}-glyph" title="{i18nText('browse.info.sgroup.' + $prop.socialGroupInfo.typeName)}">
+                            {i18nText('browse.info.sgroup.' + $prop.socialGroupInfo.typeName)}
+                        </span>
+                        {if $prop.isVisibleToPartner}
+                            <span class="jive-icon-med jive-icon-partner" title="{i18nText('partner.browse.ext_access')}"></span>
+                        {/if}
+                        </span>
+                    </div>
+                    {/if}
+
+                {/if}
+                </div>
+                {if $prop.descSnippet}
+                <article class="font-color-meta">
+//              TODO: put the full description in a title tag in this span
+                    <span>
+                        {$prop.descSnippet}
+                    </span>
+                </article>
+                {/if}
+            </section>
+
+
+            {call .flipperControl data="$prop"/}
+
+        </div>
+        {call .cardBack data="all"/}
+    </div>
+
+
+{/template}
+
+/**
+* Renders a single thumbnail item from a {@link BrowseViewItemBean} instance.
+*
+* @param subject The item subject.
+* @param link A relative link to the item.
+* @param id The place ID.
+* @param type The place type.
+* @param prop Properties of the container.
+*
+* @depends template=jive.eae.acclaim.count
+* @depends i18nKeys=project.status.type.*
+*/
+{template .thumbnailProjectItem}
+    <div class="card">
+        <div class="j-thumb j-place-thumb j-project-thumb j-rc4 js-browse-item face card-front {call .flippable data="$prop"}{param body: 'flippable'/}{/call}" data-object-type="{$type}" data-object-id="{$id}">
+            <header class="js-thumb-header">
+                <h4>
+                    <a class="j-place-name" href="{buildUrl($link)}" title="{$subject}">
+                        {if $prop.projectInfo.statusKey}
+                            <span class="jive-icon-project-status-{$prop.projectInfo.statusKey} jive-icon-big" role="img" title="{i18nText(('global.access.content.type.' + $type))}"></span>
+                        {/if}
+                        <span class="js-header-text">{$subject}</span>
+                    </a>
+                </h4>
+            </header>
+
+            <section>
+
+                <a href="{buildUrl($link)}" class="j-place-photo j-project-photo">
+                    {if $prop.placeImage and $prop.placeImage.urlMedium}
+                        <img src="{buildUrl($prop.placeImage.urlMedium)}" alt="{i18nText('project.form.image')}" width="200"/>
+                    {/if}
+                    <div class="j-status-bar">
+                        <span class="font-color-meta">{i18nText('browse.info.status')}{i18nText('global.colon')} </span>
+                        <span class="j-proj-status-text"><strong class="j-proj-status font-color-status-{$prop.projectInfo.statusKey}">{i18nText('project.status.type.' + $prop.projectInfo.statusKey)}</strong></span>
+                    </div>
+                </a>
+
+                <div class="j-place-info clearfix {if $prop.isVisibleToPartner}j-external{/if}">
+                    {if $prop.followInfo}
+                    <div>
+                        <span class="font-color-meta-light">
+                                {i18nText('browse.info.followers.plural')}
+                        </span>
+                        <br/>
+
+                        {call jive.eae.acclaim.count}
+                            {param command:'showFollowers' /}
+                            {param count}{if ($prop.followInfo.numFollowers)}{$prop.followInfo.numFollowers}{else}0{/if}{/param}
+                            {param objectId:$id /}
+                            {param objectType:$type /}
+                            {param accessibilityLinkLabel}
+                                {call jive.shared.soy.getCountTextByType}
+                                    {param count}{if ($prop.followInfo and $prop.followInfo.numFollowers)}{$prop.followInfo.numFollowers}{else}0{/if}{/param}
+                                    {param type:'showfollowcount'/}
+                                {/call}
+                            {/param}
+                        {/call}
+
+                    </div>
+                    {/if}
+
+                    <div>
+                        <span class="font-color-meta-light">
+                            {if $prop.projectInfo.overdue}
+                                <span class="font-color-normal">{i18nText('browse.info.overdue')}</span>
+                            {else}
+                                {i18nText('browse.info.timeleft')}
+                            {/if}
+                        </span>
+                        <br/>
+                        {if $prop.projectInfo}
+                            <span><strong>{call .projectStatusMessage data="all" /}</strong></span>
+                        {/if}
+                    </div>
+
+                    {if $prop.isVisibleToPartner}
+                    <div class="j-browse-external-access">
+                        <span class="font-color-meta-light">
+                            {i18nText('partner.browse.ext_access.short')}
+                        </span>
+                        <br/>
+                        <span class="">
+                            <span class="jive-icon-med jive-icon-partner" title="{i18nText('partner.browse.ext_access')}"></span>
+                        </span>
+                    </div>
+                    {/if}
+
+                </div>
+
+                {if $prop.descSnippet}
+                <article class="font-color-meta">
+                    <span>
+                    {$prop.descSnippet}
+                    </span>
+                </article>
+                {/if}
+            </section>
+
+
+            {call .flipperControl data="$prop"/}
+
+        </div>
+        {call .cardBack data="all"/}
+    </div>
+{/template}
+
+/**
+* Renders a single thumbnail item from a {@link BrowseViewItemBean} instance.
+*
+*/
+{template .thumbnailBlogItem}
+    <div class="card">
+        Currently Blog containers do not have a visual representation and are not rendered in browse UI.
+    </div>
+{/template}
+
+/**
+* Renders a single detail item from a {@link BrowseViewItemBean} instance.
+*
+* @param subject The item subject.
+* @param link A relative link to the item.
+* @param iconCss An icon representing the item.
+* @param type The place type.
+* @param id The place ID.
+* @param columns The columns shown in the details view.
+* @param creationDate The creation date of the item.
+* @param prop Properties of the container.
+*
+* @depends i18nKeys=profile.friends.following.link
+*/
+{template .detailContainerItem}
+      <tr class="j-place-row js-browse-item" data-object-type="{$type}" data-object-id="{$id}">
+        <td class="j-td-icon">
+            <img src="{resourceUrl('/images/transparent.png')}" alt="{i18nText(('global.access.content.type.' + $type))}" class="{$iconCss} jive-icon-med" />
+        </td>
+        <td class="j-td-title">
+            <a href="{buildUrl($link)}" class="jivecontainerTT-hover-container" data-objectId="{$id}" data-objectType="{$type}"><strong>{$subject}</strong></a>
+                {if $prop.projectInfo and not $prop.projectInfo.archived}
+                    <span class="font-color-meta-light j-browse-proj-status"> - <strong class="j-proj-status font-color-status-{$prop.projectInfo.statusKey}">{i18nText('project.status.type.' + $prop.projectInfo.statusKey)}</strong></span>
+                {/if}
+                {if $prop.projectInfo and $prop.projectInfo.archived}
+                    <span>{sp}-{sp}<strong>{call .projectStatusMessage data="all" /}</strong></span>
+                {/if}
+                {if $prop.socialGroupInfo and $prop.socialGroupInfo.typeName}
+                    <span class="font-color-meta-light j-browse-group-type"> - {i18nText('sgroup.' + $prop.socialGroupInfo.typeName)}</span>
+                {/if}
+                {if $prop.isVisibleToPartner}
+                    <span class="font-color-meta-light j-browse-external-access"> - <em>{i18nText('partner.browse.ext_access')}</em></span>
+                {/if}
+                {if $prop.childInfo and $prop.childInfo.hasChildren}
+                    <span class="font-color-meta-light j-browse-subspaces"> - <a href="#"
+                        class="j-sub-spaces j-view-children font-color-meta-light" data-activity-type="children" data-objecttype="{$type}" data-objectid="{$id}">
+                        {if $prop.childInfo.numChildren == 1}
+                            {i18nText('browse.info.subspacecount.singular', 1)}
+                        {else}
+                            {i18nText('browse.info.subspacecount.plural', $prop.childInfo.numChildren)}
+                        {/if}
+                        </a>
+                    </span>
+                {/if}
+
+            {if $prop.socialGroupInfo and $prop.socialGroupInfo.numMembers}
+                <p class="j-browse-content-location font-color-meta-light">
+                    {call jive.eae.acclaim.count}
+                        {param command:'showMembers' /}
+                        {param count}{if $prop.socialGroupInfo}{$prop.socialGroupInfo.numMembers}{else}0{/if}{/param}
+                        {param objectId:$id /}
+                        {param objectType:$type /}
+                        {param text: ($prop.socialGroupInfo.numMembers == 1) ?
+                                i18nText('browse.info.membercount.singular', SanitizedHtml('<strong>1</strong>')) :
+                                i18nText('browse.info.membercount.plural', SanitizedHtml('<strong>' + $prop.socialGroupInfo.numMembers + '</strong>')) /}
+                        {param accessibilityLinkLabel}
+                            {call jive.shared.soy.getCountTextByType}
+                                {param count}{if $prop.socialGroupInfo}{$prop.socialGroupInfo.numMembers}{else}0{/if}{/param}
+                                {param type:'showmembercount'/}
+                            {/call}
+                        {/param}
+                    {/call}
+                </p>
+            {else}
+                {if $prop.parentInfo}<p class="j-browse-content-location font-color-meta-light">{i18nText('global.in')} <a href="{buildUrl($prop.parentInfo.link)}" class="font-color-meta-light jivecontainerTT-hover-container" data-objectId="{$prop.parentInfo.id}" data-objectType="{$prop.parentInfo.type}">{$prop.parentInfo.subject}</a></p>{/if}
+            {/if}
+
+        </td>
+        <td class="j-td-followers">
+            {if $prop.followInfo}
+                {call jive.eae.acclaim.count}
+                    {param command:'showFollowers' /}
+                    {param count}{if ($prop.followInfo.numFollowers)}{$prop.followInfo.numFollowers}{else}0{/if}{/param}
+                    {param objectId:$id /}
+                    {param objectType:$type /}
+                    {param accessibilityLinkLabel}
+                        {call jive.shared.soy.getCountTextByType}
+                            {param count}{if ($prop.followInfo and $prop.followInfo.numFollowers)}{$prop.followInfo.numFollowers}{else}0{/if}{/param}
+                            {param type:'showfollowcount'/}
+                        {/call}
+                    {/param}
+                {/call}
+            {/if}
+        </td>
+        {if $columns and $columns.creationDate}
+            <td class="j-td-date font-color-meta">{formatDate($creationDate)}</td>
+        {else}
+            <td class="j-td-activity font-color-meta j-act">
+            {if $prop.latestActivity}
+                <span class="j-activity-author">
+                    {$prop.latestActivity.activityUser.displayName}{sp}
+                    {call jive.eae.activitystream.include.activityVerbPhrase}
+                        {param object: $prop.latestActivity.content /}
+                        {param type: $prop.latestActivity.type /}
+                    {/call}
+                </span>
+                {sp}
+                <span class="j-excerpt">
+                    <a href="{buildUrl($prop.latestActivity.content.jiveObjectURL)|noAutoescape}" class="j-act-title">
+                        {$prop.latestActivity.content.plainSubjectSnippet|noAutoescape}
+                    </a>
+                    {sp}
+                    {call jive.shared.displayutil.renderAttachmentLink}
+                        {param object: $prop.latestActivity.content /}
+                    {/call}
+                    {if $prop.latestActivity.creationTime} <span class="font-color-meta-light">({$prop.latestActivity.creationTime})</span> {/if}
+                </span>
+                {else}
+//            for IE7, there needs to be something in the cell for it to render a border
+                &nbsp
+            {/if}
+            </td>
+        {/if}
+        <td class="j-td-actions">
+            {call .flippable data="$prop"}
+                {param body}
+                    <a href="#" class="j-social-button j-browse-action-button j-ui-elem" title="{i18nText('global.actions')}">
+                        <span class="j-ui-elem">
+                            <span class="jive-icon-med jive-icon-gear"></span>
+                            <span class="j-browse-actions-button-text">{i18nText('browse.action.btn')}</span>
+                        </span>
+                    </a>
+
+                    <div class="j-menu j-js-browse-actions-container" style="display: none">
+                        <ul>
+                        {if $prop.followInfo and $prop.followInfo.showFollowControls}
+                            <li class="j-js-follow-controls" data-location="browse" data-streamsassoc="{length($prop.followInfo.streamsAssociatedBean.streamIDs)}" aria-live="polite" aria-atomic="true">
+                                <span class="start-follow">
+                                    <a href="#" class="j-follow-button" data-objecttype="{$type}" data-objectid="{$id}"
+                                        {if $prop.followInfo.followed} style="display:none" {/if}>
+                                        {i18nText('browse.action.follow')}
+                                    </a>
+                                </span>
+                                <span class="following">
+                                    <a href="#" class="j-follow-button" data-objecttype="{$type}" data-objectid="{$id}"
+                                        {if not $prop.followInfo.followed} style="display:none" {/if}>
+                                        {call jive.shared.soy.i18nHelper}
+                                            {param i18nKey}
+                                                profile.friends.following.link
+                                            {/param}
+                                            {param arg0}
+                                                {call jive.people.profile.streamsAssociatedCount}
+                                                    {param count: length($prop.followInfo.streamsAssociatedBean.streamIDs) /}
+                                                    {param renderLocation: 'browse' /}
+                                                {/call}
+                                            {/param}
+                                            {param noAutoEscape:true/}
+                                        {/call}
+                                    </a>
+                                </span>
+                            </li>
+                        {/if}
+                        {if $prop.shareInfo and $prop.shareInfo.shareable}
+                            <li>
+                                {call jive.soy.share.control}
+                                    {param objectId:$id /}
+                                    {param objectType:$type /}
+                                    {param type:'text' /}
+                                {/call}
+                            </li>
+                        {/if}
+                        {if $prop.socialGroupInfo and not $prop.socialGroupInfo.owner}
+                            <li>
+                            <span><a href="#" class="sgroup-join j-follow-button" data-objectid="{$id}"
+                                {if $prop.socialGroupInfo.member} style="display:none" {/if}>{i18nText('browse.action.joingroup')}</a></span>
+                            <span><a href="#" class="sgroup-leave j-follow-button" data-objectid="{$id}"
+                                {if not $prop.socialGroupInfo.member} style="display:none" {/if}>{i18nText('browse.action.leavegroup')}</a></span>
+                            </li>
+                        {/if}
+                        </ul>
+                    </div>
+                {/param}
+            {/call}
+        </td>
+{/template}
+
+/**
+* Renders a single hierarchy item from a {@link BrowseViewItemBean} instance.
+*
+* @param subject The item subject.
+* @param link A relative link to the item.
+* @param iconCss An icon representing the item.
+* @param type The place type.
+* @param id The place ID.
+* @param prop Properties of the container.
+* @param omitIcon Flag indicating that icons should not be rendered
+*/
+{template .hierarchyContainerItem}
+    {if ($prop.beforeInfo)}
+        <li class="j-hierarchy-more" data-index-end="{$prop.beforeInfo}" data-parent-objectid="{$prop.parentInfo.id}" data-direction="0">
+            <a href="#" title="{i18nText('browse.info.hierarchy.loadmore.previous10')}" ><span class="j-more-label j-rc6">{i18nText('browse.info.hierarchy.loadmore')}</span></a>
+        </li>
+    {/if}
+    <li class="j-hierarchy-item" data-object-type="{$type}" data-object-id="{$id}">
+        {if ($prop.perms.allowedToView)}<a href="{buildUrl($link)}" class="j-anchor-icon jivecontainerTT-hover-container" data-objectid="{$id}" data-objecttype="{$type}">{/if}
+        {if not $omitIcon}<span class="{$iconCss} jive-icon-med"></span>{/if}
+        <strong>{$subject}</strong>{if ($prop.perms.allowedToView)}</a>{/if}
+        {if ($prop.recursiveContentCount)}
+            {sp}
+            <span class="font-color-meta j-content-count">
+                {if $prop.recursiveContentCount.count == 1}
+                    {i18nText('browse.info.hierarchy.contentCount.singular', $prop.recursiveContentCount.count)}
+                {else}
+                    {i18nText('browse.info.hierarchy.contentCount.plural', $prop.recursiveContentCount.count)}
+                {/if}
+            </span>
+        {/if}
+        {if $prop.childInfo and $prop.childInfo.hasTraversableChildren}
+            <div class="j-td-spaceactions">
+                <a href="#" class="j-sub-spaces j-view-children" data-activity-type="children" data-objecttype="{$type}" data-objectid="{$id}" >
+                    <span class="j-show-children-msg"{if $prop.childInfo.children}style="display:none"{/if}>
+                        {if $prop.childInfo.numTraversableChildren == 1}
+                            {i18nText('browse.info.hierarchy.viewsubspaces.singular', $prop.childInfo.numTraversableChildren)}
+                        {else}
+                            {i18nText('browse.info.hierarchy.viewsubspaces.plural', $prop.childInfo.numTraversableChildren)}
+                        {/if}
+                    </span>
+                    <span class="j-hide-children-msg"{if not $prop.childInfo.children}style="display:none"{/if}>
+                        {if $prop.childInfo.numTraversableChildren == 1}
+                            {i18nText('browse.info.hierarchy.hidesubspaces.singular', $prop.childInfo.numTraversableChildren)}
+                        {else}
+                            {i18nText('browse.info.hierarchy.hidesubspaces.plural', $prop.childInfo.numTraversableChildren)}
+                        {/if}
+                    </span>
+                </a>
+            </div>
+        {/if}
+        <ul class="j-hierarchy-child-holder"{if $prop.childInfo.children}data-children-loaded="true" {else} style="display:none"{/if}>
+            <div class="j-hierarchy-child-expanded j-ui-elem"> </div>
+            {if $prop.childInfo and $prop.childInfo.children}
+                {foreach $child in $prop.childInfo.children}
+                    {call .hierarchyContainerItem data="$child"}
+                        {param omitIcon: $omitIcon /}
+                    {/call}
+                {/foreach}
+            {/if}
+        </ul>
+    </li>
+    {if ($prop.afterInfo)}
+        <li class="j-hierarchy-more" data-index-start="{$prop.afterInfo}" data-parent-objectid="{$prop.parentInfo.id}" data-direction="1">
+            <a href="#" title="{i18nText('browse.info.hierarchy.loadmore.next10')}" ><span class="j-more-label j-rc6">{i18nText('browse.info.hierarchy.loadmore')}</span></a>
+        </li>
+    {/if}
+{/template}
+
+
+/**
+* If a card is flippable, render something.
+* @param followInfo
+* @param shareInfo
+* @param socialGroupInfo
+* @param body
+*/
+{template .flippable}
+    {if ($followInfo and $followInfo.showFollowControls) or ($shareInfo and $shareInfo.shareable) or $socialGroupInfo}
+        {$body|noAutoescape}
+    {/if}
+{/template}
+
+/** Render the flipper controls
+*/
+{template .flipperControl}
+    {call .flippable data="all"}
+        {param body}<a href="#" class="j-card-flipper j-ui-elem">{i18nText('global.actions')}</a>{/param}
+    {/call}
+{/template}
+
+/**
+ * Renders the back of a card
+ *
+ * @depends template=jive.soy.share.control
+ *
+ * @param subject The item subject.
+ * @param type The place type.
+ * @param iconCss An icon representing the item.
+ * @param id The place ID.
+ * @param prop Properties of the container.
+ * @depends template=jive.people.profile.streamsAssociatedCount
+ * @depends i18nKeys=profile.friends.following.link
+ */
+{template .cardBack}
+    {call .flippable data="$prop"}
+        {param body}
+        <div class="j-thumb-back face card-back" aria-hidden="true">
+            <header>
+                <h6 class="font-color-white"><img src="{resourceUrl('/images/transparent.png')}" alt="" class="{$iconCss} jive-icon-med" /> {$subject}</h6>
+                {if $prop.parentInfo}<p class="j-browse-content-location font-color-meta-light">{i18nText('global.in')} <a href="{buildUrl($prop.parentInfo.link)}" class="font-color-meta-light jivecontainerTT-hover-container" data-objectId="{$prop.parentInfo.id}" data-objectType="{$prop.parentInfo.type}">{$prop.parentInfo.subject}</a></p>{/if}
+            </header>
+           {if $prop.descSnippet}
+                <article class="font-color-meta-light j-browse-place-description">
+                    <span>{$prop.descSnippet}</span>
+                </article>
+            {/if}
+            <ul class="j-social-actions">
+                {if $prop.followInfo and $prop.followInfo.showFollowControls}
+                    <li class="j-js-follow-controls" data-location="browse" data-streamsassoc="{length($prop.followInfo.streamsAssociatedBean.streamIDs)}" aria-live="polite" aria-atomic="true">
+                        <span class="start-follow">
+                            <a class="button j-follow-button j-social-action" href="#" data-objecttype="{$type}" data-objectid="{$id}" {if $prop.followInfo.followed}style="display: none;"{/if}>
+                                <span><span class="jive-icon-med jive-icon-follow"></span>{i18nText('browse.action.follow')}</span>
+                            </a>
+                        </span>
+                        <span class="following">
+                            <a class="button j-follow-button j-social-action" href="#" data-objecttype="{$type}" data-objectid="{$id}" {if not $prop.followInfo.followed}style="display: none;"{/if}>
+                                <span>
+                                    <span class="jive-icon-med jive-icon-follow"></span>
+                                    {call jive.shared.soy.i18nHelper}
+                                        {param i18nKey}
+                                            profile.friends.following.link
+                                        {/param}
+                                        {param arg0}
+                                            {call jive.people.profile.streamsAssociatedCount}
+                                                {param count: length($prop.followInfo.streamsAssociatedBean.streamIDs) /}
+                                                {param renderLocation: 'browse' /}
+                                            {/call}
+                                        {/param}
+                                        {param noAutoEscape:true/}
+                                    {/call}
+                                </span>
+                            </a>
+                        </span>
+
+                    </li>
+                {/if}
+
+
+                {if $prop.shareInfo and $prop.shareInfo.shareable}
+                <li>
+                    {call jive.soy.share.control}
+                        {param objectId:$id /}
+                        {param objectType:$type /}
+                        {param type:'largeButton' /}
+                        {param icon:true /}
+                        {param classes:'button j-social-action' /}
+                    {/call}
+                <li>
+                {/if}
+
+                {if $prop.socialGroupInfo and not $prop.socialGroupInfo.owner}
+                <li>
+                    <a class="button j-social-action sgroup-join" data-objectid="{$id}" {if $prop.socialGroupInfo.member} style="display: none;" {/if}>
+                        <span>{if $prop.socialGroupInfo.requestToJoin}{i18nText('browse.action.reqjoingroup')}{else}{i18nText('browse.action.joingroup')}{/if}</span>
+                    </a>
+                    <a class="button j-social-action sgroup-leave" data-objectid="{$id}" {if not $prop.socialGroupInfo.member} style="display: none;" {/if}>
+                        <span>{i18nText('browse.action.leavegroup')}</span>
+                    </a>
+                </li>
+                {/if}
+            </ul>
+
+            <a href="#" class="j-back-btn j-ui-elem"><span class="j-ui-elem">{i18nText('global.back.button')}</span></a>
+        </div>
+        {/param}
+    {/call}
+{/template}
+
+/**
+ * Build project status message.
+ *
+ * @param prop Properties of the container.
+ */
+{template .projectStatusMessage}
+
+    {if $prop.projectInfo}
+        <span class="font-color-meta j-proj-status-text-details">
+        {if $prop.projectInfo.archived}
+            {i18nText('browse.project.archived')}
+        {elseif $prop.projectInfo.complete}
+            {i18nText('browse.project.complete')}
+        {elseif $prop.projectInfo.overdue}
+            {if $prop.projectInfo.years > 0}
+                {if $prop.projectInfo.years == 1}
+                    {i18nText('browse.info.daysoverdue.singular', $prop.projectInfo.years)}
+                {else}
+                    {i18nText('browse.info.daysoverdue.plural', $prop.projectInfo.years)}
+                {/if}
+            {elseif $prop.projectInfo.months > 0}
+                {if $prop.projectInfo.months == 1}
+                    {i18nText('browse.info.monthsoverdue.singular', $prop.projectInfo.months)}
+                {else}
+                    {i18nText('browse.info.monthsoverdue.plural', $prop.projectInfo.months)}
+                {/if}
+            {else}
+                // we don't want to say "O days overdue"
+                {if $prop.projectInfo.days == 1 or $prop.projectInfo.days == 0}
+                    {i18nText('browse.info.daysoverdue.singular', 1)}
+                {else}
+                    {i18nText('browse.info.daysoverdue.plural', $prop.projectInfo.days)}
+                {/if}
+            {/if}
+        {else}
+            {if $prop.projectInfo.years}
+                {if $prop.projectInfo.years == 1}
+                    {i18nText('browse.info.yearsremaining.singular', $prop.projectInfo.years)}
+                {else}
+                    {i18nText('browse.info.yearsremaining.plural', $prop.projectInfo.years)}
+                {/if}
+            {elseif $prop.projectInfo.months}
+                {if $prop.projectInfo.months == 1}
+                    {i18nText('browse.info.monthsremaining.singular', $prop.projectInfo.months)}
+                {else}
+                    {i18nText('browse.info.monthsremaining.plural', $prop.projectInfo.months)}
+                {/if}
+            {else}
+                {if $prop.projectInfo.days == 1}
+                    {i18nText('browse.info.daysremaining.singular', $prop.projectInfo.days)}
+                {else}
+                    {i18nText('browse.info.daysremaining.plural', $prop.projectInfo.days)}
+                {/if}
+            {/if}
+        {/if}
+        </span>
+    {/if}
+{/template}

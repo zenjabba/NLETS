@@ -1,0 +1,380 @@
+{namespace jive.eae.recommendation autoescape="contextual"}
+
+/**
+ * Home Activity Stream Recommendation Sidebar
+ *
+ * @depends path=/resources/scripts/apps/recommendation_app/activity_page_controller.js
+ * @depends i18nKeys=trial.quest.feedback.*
+ * @depends template=jive.soy.partner.*
+ * @depends template=jive.announcements.announcementFlipper
+ *
+ * @param recommenderEnabled
+ * @param user
+ * @param pollingInterval
+ * @param communityFeedback
+ * @param? quickTip
+ * @param? additionalContent
+ */
+{template .homeRecommendationSidebar}
+    <div id="j-discovery" class="j-recommender" role="complementary" aria-label="{i18nText('eae.home.recommendations.title')}">
+
+        {if $user.partner}
+            {call jive.soy.partner.welcomeTextWidget/}
+            {call jive.soy.partner.groupWidget/}
+        {else}
+            {call jive.announcements.announcementFlipper}
+                {param containerType: 14 /}
+                {param containerId: 1 /} //hard coded root space FTW.
+            {/call}
+        {/if}
+        
+        {if $additionalContent}
+            {$additionalContent |noAutoescape}
+        {/if}
+
+        {if $communityFeedback and $communityFeedback.displayFeedbackPanel}
+            {if $communityFeedback.feedbackContentExists and $communityFeedback.feedbackContent}
+                <div class="j-reco-section" id="j-trial-feedbackThread">
+                    <div class="j-reco-display j-user-recos">
+                        <div class="jive-widget-header">
+                            <h4 class="j-reco-section-hd">{i18nText('trial.quest.feedback.section.header')}</h4>
+                        </div>
+                        <ul class="j-recommended-people j-recommendations clearfix">
+                            <li class="j-reco j-feedback-reco replied">
+                                <span class="j-reco-avatar">
+                                    {call jive.shared.displayutil.avatar data="$communityFeedback.feedbackContent.prop.author"}
+                                        {param size: 32/}
+                                        {param currentUserPartner: $user.partner /}
+                                    {/call}
+                                </span>
+                                {call jive.shared.soy.i18nHelper}
+                                    {param i18nKey}
+                                        trial.quest.feedback.section.Xsaid
+                                    {/param}
+                                    {param arg0}
+                                        <strong class="font-color-meta">
+                                            {call jive.shared.displayutil.userDisplayNameLink data="$communityFeedback.feedbackContent.prop.author"/}
+                                        </strong>
+                                    {/param}
+                                    {param noAutoEscape:true/}
+                                {/call}{sp}
+                                <p class="j-feedback-excerpt">
+                                    &quot;{$communityFeedback.feedbackContent.prop.bodysnippet|noAutoescape}&quot;
+                                </p>
+                                <a href="{buildUrl($communityFeedback.feedbackContent.link)}" class="j-feedback-link">
+                                    {if $communityFeedback.feedbackContent.prop.activityInfo.replyCount > 1}
+                                        {i18nText('trial.quest.feedback.section.readXreplies', $communityFeedback.feedbackContent.prop.activityInfo.replyCount)}
+                                    {else}
+                                        {i18nText('trial.quest.feedback.section.view.discussion')}
+                                    {/if}
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            {elseif $communityFeedback.displayFeedbackCreationPrompt}
+                <div class="j-reco-section" id="j-trial-feedbackThread">
+                    <div class="j-reco-display j-user-recos">
+                        <div class="jive-widget-header">
+                            <h4 class="j-reco-section-hd">{i18nText('trial.quest.feedback.section.header')}</h4>
+                        </div>
+                        <ul class="j-recommended-people j-recommendations clearfix">
+                            <li class="j-reco j-feedback-reco">
+                                <span class="jive-icon-med jive-icon-discussion-question j-reco-icon"></span>
+                                <p>
+                                    {call jive.shared.soy.i18nHelper}
+                                        {param i18nKey}
+                                            trial.quest.feedback.section.prompt
+                                        {/param}
+                                        {param arg0}
+                                            <strong><a href="/discussion/create.jspa?fromQ=355022612">
+                                                {i18nText('trial.quest.feedback.section.prompt.start')}
+                                            </a></strong>
+                                        {/param}
+                                        {param noAutoEscape:true/}
+                                    {/call}
+                                </p>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            {/if}
+        {/if}
+
+        {if $recommenderEnabled}
+            {if not $user.anonymous}
+                <div id="recommended-for-you-module" class="j-reco-section j-js-recommendation-module" style="display:none">
+                    <div id="user-reco-content" class="j-reco-display j-user-recos" data-module-body="true" data-max="2"></div>
+                </div>
+
+                <div id="recommended-people-module" class="j-reco-section j-js-recommendation-people-module" style="display:none">
+                    <div id="user-reco-people" class="j-reco-display j-user-recos" data-module-body="true" data-max="2"></div>
+                </div>
+            {/if}
+        {/if}
+
+        <div id="trendy-content-module" class="j-reco-section clearfix" style="display:none">
+            <div id="trendy" class="j-reco-display" data-module-body="true" data-max="8" data-load-more="true"></div>
+        </div>
+
+        <div id="leaderboard-module" class="j-reco-section clearfix" style="display:none">
+            <h4 class="j-reco-section-hd font-color-meta-light">
+                <a href="{buildUrl('/people?filterID=recommended&sr=tpeople')}">{i18nText('eae.home.trending.people')}</a>
+            </h4>
+            <div id="trendy-users" class="j-reco-display" data-module-body="true" data-max="15" data-load-more="false"></div>
+        </div>
+
+        {if $quickTip and not $user.partner}
+
+            <div class="j-reco-section jive-quick-tips">
+               <div class="j-reco-display j-user-recos">
+                   <div class="jive-widget-header">
+                        <h4 class="j-reco-section-hd">Quick Tip</h4>
+                   </div>
+                    <div class="tip-body" id="js-reco-section-quicktips">
+                        <span class="jive-icon-huge jive-icon-quicktips"></span>
+                        <p><strong>{$quickTip.displayName}</strong></p>
+                        <p><a href="#"><span class="arrow"></span> See more</a></p>
+                    </div>
+                </div>
+            </div>
+            // tip content body
+            <div id="js-reco-section-tipBody" class="j-pop-quicktips" style="display: none;">
+                <h4>{$quickTip.displayName}</h4>
+                {$quickTip.body|noAutoescape}
+            </div>
+
+            {call jive.shared.soy.resourceInlineJs}
+                {param code}
+                    $j(function() {lb}
+                        $j('#js-reco-section-quicktips').click(function(e) {lb}
+                            $j('#js-reco-section-tipBody').popover({lb}context: $j('#js-reco-section-quicktips'), destroyOnClose: false{rb});
+                            e.preventDefault();
+                        {rb});
+                    {rb});
+                {/param}
+            {/call}
+
+        {/if}
+        {call jive.shared.soy.resourceInlineJs}
+            {param code}
+                $j(function() {lb}
+                    // delay it for a second
+                    setTimeout(function() {lb}
+                        if (!jive.RecommendationApp.globalActivityPageController) {lb}
+                            jive.RecommendationApp.globalActivityPageController =
+                                new jive.RecommendationApp.activityPageController({lb}pollingInterval:{$pollingInterval}{rb});
+                        {rb}
+                        else {lb}
+                            jive.RecommendationApp.globalActivityPageController.init();
+                        {rb}
+                    {rb}, 1000);
+                {rb});
+            {/param}
+        {/call}
+    </div>
+{/template}
+
+/**
+ * Recommendation
+ *
+ * @param recommendation
+ */
+{template .recommendation}
+    {call .titleLink data="all" /}
+    {call .body data="all" /}
+{/template}
+
+/**
+ * Recommendation
+ *
+ * @param recommendation
+ * @param currentUserPartner
+ */
+{template .recommendedPerson}
+    <span class="j-reco-avatar">
+        {call jive.shared.displayutil.avatar data="$recommendation"}
+            {param size: 46/}
+            {param trackingID: 'rpeople' /}
+            {param currentUserPartner: $currentUserPartner /}
+        {/call}
+    </span>
+    {call jive.shared.soy.escapeHelper}
+        {param stringToEscape}
+            {call jive.shared.displayutil.userDisplayNameLink data="$recommendation"}
+                {param trackingID: 'rpeople' /}
+            {/call}
+        {/param}
+    {/call}
+    {call jive.people.profile.followLink data="$recommendation.prop.connections"}
+        {param targetUserID: $recommendation.id /}
+        {param targetUserDisplayName: $recommendation.displayName /}
+        {param hideFollowingCount: true /}
+        {param hideFriendListChooser: true /}
+        {param renderLocation: 'recommendations' /}
+        {param streamsAssociatedCount: ($recommendation.prop.connections.streamsAssociatedBean ? length($recommendation.prop.connections.streamsAssociatedBean.streamIDs) : 0) /}
+    {/call}
+    {if $recommendation.prop.recommendation.ranks}
+        {call .insights data="all" /}
+    {/if}
+    {call .notInterestedButton}
+        {param recommendation: $recommendation /}
+    {/call}
+{/template}
+
+/**
+ * @depends template=jive.shared.*
+ * @param recommendation
+ * @param number
+ */
+{template .numberedTitle}
+    <header>
+        <span class="j-item-number">{i18nText('eae.home.trendy.itemNumber', $number)}</span>
+        <a class="j-title" href="{buildUrl($recommendation.link)}">
+            <span class="jive-icon-med {$recommendation.iconCss} j-reco-icon"></span>
+            {$recommendation.subject|noAutoescape}
+        </a>
+    </header>
+{/template}
+
+/**
+ * @depends template=jive.shared.soy.*
+ * @depends template=jive.eae.acclaim.*
+ *
+ * @param recommendation
+ * @param count
+ * @param type
+ * @param showLink
+ */
+{template .activityInfoItem}
+    <span class="j-trendinfo">
+        {if $showLink}
+            {call jive.eae.acclaim.count}
+                {param command:'showLikes' /}
+                {param count}{if $count}{$count}{else}0{/if}{/param}
+                {param objectId:$recommendation.id /}
+                {param objectType:$recommendation.type /}
+                {param accessibilityLinkLabel}
+                    {call jive.shared.soy.getCountTextByType}
+                        {param count}{if $count}{$count}{else}0{/if}{/param}
+                        {param type:'showlikescount'/}
+                    {/call}
+                {/param}
+            {/call}
+        {else}
+            {sp}{if $count}{$count}{else}0{/if}
+        {/if}
+
+        {sp}
+
+        {switch $type}
+            {case 'reply'}
+                // replies, calling them "comments" per the mock
+                {if $count == 1}
+                    {if $recommendation.type == 1 or $recommendation.type == 2}
+                        {i18nText('eae.liking.message')}
+                    {else}
+                        {i18nText('eae.liking.comment')}
+                    {/if}
+                {else}
+                    {if $recommendation.type == 1 or $recommendation.type == 2}
+                        {i18nText('activity.replycount')}
+                    {else}
+                        {i18nText('activity.commentcount')}
+                    {/if}
+                {/if}
+
+            {case 'like'}
+                // likes
+                {if $count == 1}
+                    {i18nText('eae.liking.Xlike')}
+                {else}
+                    {i18nText('eae.liking.Xlikes')}
+                {/if}
+        {/switch}
+    </span>
+{/template}
+
+/**
+ * @depends template=jive.shared.*
+ * @param recommendation
+ */
+{template .body}
+    {if $recommendation.prop.recommendation.ranks}
+        {call .insights data="all" /}
+    {/if}
+    {call .notInterestedButton data="all" /}
+{/template}
+
+/**
+ * @param recommendation
+ * @param? additionalClasses because "class" is a reserved word in JavaScript
+ */
+{template .titleLink}
+    <a class="j-title{if $additionalClasses} {$additionalClasses}{/if}" href="{buildUrl($recommendation.link, 'sr', 'rcontent')|noAutoescape}">
+        {call .contentIcon}
+            {param recommendation: $recommendation /}
+        {/call}
+        {$recommendation.subject|noAutoescape}
+    </a> 
+{/template}
+
+
+
+/**
+ * @param recommendation
+ */
+{template .contentIcon}
+    <span class="jive-icon-med {$recommendation.iconCss} j-reco-icon"></span>
+{/template}
+
+
+
+/**
+ * Not interested button
+ *
+ * @param recommendation
+ */
+{template .notInterestedButton}
+
+    <a class="j-reco-dismiss" href="#"
+        data-event="dislike"
+        data-id="{$recommendation.id}"
+        data-object-type="{$recommendation.type}"
+        title="{i18nText('eae.home.recommendations.less.title')}"
+        aria-label="{i18nText('eae.home.recommendations.less.title')}">
+        <span class="jive-icon-sml jive-glyph-remove"></span>
+    </a>
+
+
+    {if $recommendation.prop and $recommendation.prop.recommendation and $recommendation.prop.recommendation.ranks}
+        <a class="j-why lnk font-color-meta-light" href="#" data-event="why" data-id="{$recommendation.id}" aria-label="{i18nText('eae.home.recommendations.why.title')}" title="{i18nText('eae.home.recommendations.why.title')}">
+            {i18nText('eae.home.recommendations.why')}
+        </a>
+    {/if}
+
+{/template}
+
+
+
+/**
+ * Not interested notification
+ */
+{template .notInterestedNotification}
+    <div class="j-reco-ni-msg font-color-meta" tabindex="-1">
+        <p class="msg">
+            {i18nText('eae.home.recommendations.notInterested.feedback.thankYou')}
+        </p>
+    </div>
+{/template}
+
+
+
+/**
+ * Template for no recommendations text
+ */
+{template .noRecommendations}
+    <p class="j-no-recommendations font-color-meta">
+        {i18nText('eae.home.recommendations.no_recommendations')}
+    </p>
+{/template}

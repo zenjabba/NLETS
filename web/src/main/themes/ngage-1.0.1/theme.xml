@@ -1,0 +1,136 @@
+<theme>
+  <name>ngage-1.0.1</name>
+  <description>ngage 1.0.1 theme with N-gage logo</description>
+  <version>1.0</version>
+  <properties/>
+  <resource-bundle-rules>
+    <entry>
+      <locale>en</locale>
+      <list>
+        <resource-bundle-rule>
+          <search-target>VALUE</search-target>
+          <operator>CONTAINS</operator>
+          <pattern>Secret</pattern>
+          <replace-value>Hidden</replace-value>
+          <exclude-rules/>
+        </resource-bundle-rule>
+        <resource-bundle-rule>
+          <search-target>VALUE</search-target>
+          <operator>CONTAINS</operator>
+          <pattern>secret</pattern>
+          <replace-value>hidden</replace-value>
+          <exclude-rules/>
+        </resource-bundle-rule>
+        <resource-bundle-rule>
+          <search-target>KEY</search-target>
+          <operator>EQUALS</operator>
+          <pattern>invite.global.title</pattern>
+          <replace-value>Invite to N-gage</replace-value>
+          <exclude-rules/>
+        </resource-bundle-rule>
+        <resource-bundle-rule>
+          <search-target>KEY</search-target>
+          <operator>EQUALS</operator>
+          <pattern>invite.global.body</pattern>
+          <replace-value>Invite other members of your department to N-gage</replace-value>
+          <exclude-rules/>
+        </resource-bundle-rule>
+        <resource-bundle-rule>
+          <search-target>VALUE</search-target>
+          <operator>CONTAINS</operator>
+          <pattern>friend</pattern>
+          <replace-value>connection</replace-value>
+          <exclude-rules/>
+        </resource-bundle-rule>
+        <resource-bundle-rule>
+          <search-target>VALUE</search-target>
+          <operator>CONTAINS</operator>
+          <pattern>Jive</pattern>
+          <replace-value>N-gage</replace-value>
+          <exclude-rules/>
+        </resource-bundle-rule>
+        <resource-bundle-rule>
+          <search-target>VALUE</search-target>
+          <operator>CONTAINS</operator>
+          <pattern>company</pattern>
+          <replace-value>law enforcement community</replace-value>
+          <exclude-rules/>
+        </resource-bundle-rule>
+        <resource-bundle-rule>
+          <search-target>VALUE</search-target>
+          <operator>CONTAINS</operator>
+          <pattern>Add filter</pattern>
+          <replace-value>Additional options</replace-value>
+          <exclude-rules/>
+        </resource-bundle-rule>
+        <resource-bundle-rule>
+          <search-target>VALUE</search-target>
+          <operator>CONTAINS</operator>
+          <pattern>Friends</pattern>
+          <replace-value>My Connections</replace-value>
+          <exclude-rules/>
+        </resource-bundle-rule>
+        <resource-bundle-rule>
+          <search-target>VALUE</search-target>
+          <operator>CONTAINS</operator>
+          <pattern>following</pattern>
+          <replace-value>connected to</replace-value>
+          <exclude-rules/>
+        </resource-bundle-rule>
+        <resource-bundle-rule>
+          <search-target>VALUE</search-target>
+          <operator>CONTAINS</operator>
+          <pattern>Followers</pattern>
+          <replace-value>Connections</replace-value>
+          <exclude-rules/>
+        </resource-bundle-rule>
+        <resource-bundle-rule>
+          <search-target>VALUE</search-target>
+          <operator>CONTAINS</operator>
+          <pattern>Followers</pattern>
+          <replace-value>Connections</replace-value>
+          <exclude-rules/>
+        </resource-bundle-rule>
+        <resource-bundle-rule>
+          <search-target>KEY</search-target>
+          <operator>EQUALS</operator>
+          <pattern>nav.bar.activity.link</pattern>
+          <replace-value>Connection Stream</replace-value>
+          <exclude-rules/>
+        </resource-bundle-rule>
+        <resource-bundle-rule>
+          <search-target>KEY</search-target>
+          <operator>EQUALS</operator>
+          <pattern>eae.stream.all_activity</pattern>
+          <replace-value>Connection Stream</replace-value>
+          <exclude-rules/>
+        </resource-bundle-rule>
+        <resource-bundle-rule>
+          <search-target>VALUE</search-target>
+          <operator>EQUALS</operator>
+          <pattern>Announcement</pattern>
+          <replace-value>Tips</replace-value>
+          <exclude-rules/>
+        </resource-bundle-rule>
+        <resource-bundle-rule>
+          <search-target>VALUE</search-target>
+          <operator>EQUALS</operator>
+          <pattern>Leave this group</pattern>
+          <replace-value>Remove yourself from this group</replace-value>
+          <exclude-rules/>
+        </resource-bundle-rule>
+        <resource-bundle-rule>
+          <search-target>VALUE</search-target>
+          <operator>EQUALS</operator>
+          <pattern>Yes - leave this group</pattern>
+          <replace-value>Yes - remove me from this group</replace-value>
+          <exclude-rules/>
+        </resource-bundle-rule>
+      </list>
+    </entry>
+    <entry>
+      <locale>en_US</locale>
+      <list/>
+    </entry>
+  </resource-bundle-rules>
+</theme>
